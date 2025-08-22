@@ -8,8 +8,10 @@ import restaurantRoutes from "./routes/restaurantRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import menuItemsRoutes from "./routes/menuItemsRoutes.js";
 import qrRoutes from "./routes/qrRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 import { connectDb } from "./database/db.js";
+import { initSocket } from "./socket/io.js";
 
 const app = express();
 configDotenv();
@@ -26,13 +28,7 @@ app.use(
   })
 );
 const server = http.createServer(app);
-// const io = new Server(server, {
-//   cors: {
-//     origin: "*", // must match frontend
-//     methods: ["GET", "POST"],
-//     credentials: true,
-//   },
-// });
+initSocket(server);
 
 const PORT = process.env.PORT || 8000;
 
@@ -42,31 +38,12 @@ app.use("/api/restaurant", restaurantRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/menu-items", menuItemsRoutes);
 app.use("/api/qr", qrRoutes);
+app.use("/api/orders", orderRoutes);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API");
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-// io.on("connection", (socket) => {
-//   console.log("New client connected:", socket.id);
-
-//   socket.on("join", ({ room }) => {
-//     socket.join(room);
-//     socket.to(room).emit("msg", `Client ${socket.id} joined room: ${room}`);
-//   });
-
-//   socket.on("msg", ({ inputValue, room }) => {
-//     console.log("Received message from client:", inputValue);
-//     if (room) io.to(room).emit("msg", inputValue); // send to specific room
-//     else socket.emit("msg", "Select a room first"); // send to the sender only
-//     // socket.broadcast.emit("msg", `All received: ${inputValue}`); // echo back to all clients
-//   });
-
-//   socket.on("disconnect", () => {
-//     console.log("Client disconnected:", socket.id);
-//   });
-// });

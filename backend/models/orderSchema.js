@@ -1,5 +1,19 @@
 import mongoose from "mongoose";
 
+const orderItemSchema = new mongoose.Schema(
+  {
+    menuItem: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "MenuItem",
+      required: true,
+    },
+    name: { type: String, required: true }, // snapshot for history
+    unitPrice: { type: Number, required: true }, // snapshot for history
+    quantity: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema({
   restaurant: {
     type: mongoose.Schema.Types.ObjectId,
@@ -7,23 +21,20 @@ const orderSchema = new mongoose.Schema({
     required: true,
   },
   tableNumber: { type: Number, required: true },
-  items: [
-    {
-      menuItem: { type: mongoose.Schema.Types.ObjectId, ref: "MenuItem" },
-      quantity: { type: Number, default: 1 },
-    },
-  ],
+  items: { type: [orderItemSchema], validate: (v) => v.length > 0 },
   totalAmount: Number,
   status: {
     type: String,
-    enum: ["pending", "confirmed", "preparing", "completed", "paid"],
+    enum: ["pending", "accepted", "preparing", "completed", "paid"],
     default: "pending",
+    index: true,
   },
   paymentMethod: {
     type: String,
     enum: ["cash", "khalti", "esewa"],
-    default: cash,
+    default: "cash",
   },
+  paymentStatus: { type: String, enum: ["unpaid", "paid"], default: "unpaid" },
   createdAt: { type: Date, default: Date.now },
 });
 
