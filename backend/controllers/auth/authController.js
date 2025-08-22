@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user._id, role: user.role, restaurant: user.restaurant },
+    { _id: user._id, role: user.role, restaurant: user.restaurant },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -28,7 +28,7 @@ export const registerOwner = async (req, res) => {
     const token = generateToken(user);
     res.status(201).json({
       success: true,
-      user: { id: user._id, username: user.username, role: user.role },
+      user: { _id: user._id, username: user.username, role: user.role },
       token,
     });
   } catch (err) {
@@ -36,8 +36,6 @@ export const registerOwner = async (req, res) => {
   }
 };
 
-// @desc Login
-// @route POST /api/auth/login
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -55,7 +53,7 @@ export const login = async (req, res) => {
     const token = generateToken(user);
     res.json({
       success: true,
-      user: { id: user._id, username: user.username, role: user.role },
+      user: { _id: user._id, username: user.username, role: user.role },
       token,
     });
   } catch (err) {

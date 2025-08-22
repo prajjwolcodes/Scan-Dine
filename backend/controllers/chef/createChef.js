@@ -22,6 +22,7 @@ export const createChef = async (req, res) => {
 
     res.status(201).json({
       success: true,
+      message: "Chef created successfully",
       chef: { id: chef._id, username: chef.username, role: chef.role },
     });
   } catch (err) {
