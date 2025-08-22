@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 import restaurantRoutes from "./routes/restaurantRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
 
 import { connectDb } from "./database/db.js";
 
@@ -36,6 +37,7 @@ const PORT = process.env.PORT || 8000;
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/restaurant", restaurantRoutes);
+app.use("/api/category", categoryRoutes);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API");
