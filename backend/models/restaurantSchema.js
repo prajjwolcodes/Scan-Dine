@@ -6,9 +6,10 @@ const restaurantSchema = new mongoose.Schema({
   contactNumber: String,
   phone: { type: String },
   email: { type: String },
-  tableCount: { type: Number, default: 0 },
+  tableCount: { type: Number, default: 1 },
   openingTime: { type: String },
   closingTime: { type: String },
+  qrCodeUrl: { type: String },
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
