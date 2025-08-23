@@ -5,17 +5,10 @@ const socket = io("http://localhost:8000");
 
 socket.on("connect", () => {
   console.log("✅ Customer connected:", socket.id);
-
-  // Simulate placing an order after 2 seconds
-  setTimeout(() => {
-    const order = {
-      items: ["Pizza", "Pasta"],
-      table: 5,
-      note: "Extra cheese",
-    };
-    socket.emit("placeOrder", { restaurantId, order });
-    console.log("🛒 Customer placed order:", order);
-  }, 2000);
+});
+socket.emit("joinRestaurant", { restaurantId });
+socket.on("order:update", (order) => {
+  console.log("🍽️ Order updated:", order);
 });
 
 socket.on("disconnect", () => {

@@ -1,8 +1,7 @@
-import Socket from "@/utils/socket";
 import React from "react";
 
 const page = () => {
-  return <div>Scan & Dine</div>;
+  return <div>You are not authorized to view this page.</div>;
 };
 
 export default page;

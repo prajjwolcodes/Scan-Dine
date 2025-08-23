@@ -29,3 +29,23 @@ export const createChef = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const getAllChefs = async (req, res) => {
+  try {
+    const chefs = await User.find({
+      role: "chef",
+      restaurant: req.user.restaurant,
+    });
+    res.status(200).json({
+      success: true,
+      message: "Chefs retrieved successfully",
+      chefs: chefs.map((chef) => ({
+        id: chef._id,
+        username: chef.username,
+        role: chef.role,
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

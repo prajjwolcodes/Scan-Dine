@@ -12,3 +12,7 @@ socket.on("connect", () => {
 socket.on("order:new", (order) => {
   console.log("🍽️ New DB order received:", order);
 });
+
+socket.on("order:update", (order) => {
+  console.log("🍽️ Order updated:", order);
+});

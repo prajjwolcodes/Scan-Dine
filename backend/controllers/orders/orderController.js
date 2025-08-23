@@ -96,8 +96,8 @@ export const updateOrderStatus = async (req, res) => {
     await order.save();
 
     // Emit updates
-    io?.to(`restaurant:${restaurantId}`).emit("order:update", order);
-    io?.to(`order:${order._id}`).emit("order:update", order);
+    io.to(`restaurant:${restaurantId}`).emit("order:update", order);
+    io.to(`order:${order._id}`).emit("order:update", order);
 
     res.json({
       success: true,
@@ -128,8 +128,8 @@ export const updateOrderPayment = async (req, res) => {
     await order.save();
 
     // Emit updates
-    io?.to(`restaurant:${restaurantId}`).emit("order:update", order);
-    io?.to(`order:${order._id}`).emit("order:update", order);
+    io.to(`restaurant:${restaurantId}`).emit("order:update", order);
+    io.to(`order:${order._id}`).emit("order:update", order);
 
     res.json({
       success: true,
