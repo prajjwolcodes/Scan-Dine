@@ -33,6 +33,7 @@ const authSlice = createSlice({
   },
   reducers: {
     logout: (state) => {
+      console.log("hello");
       state.user = null;
       state.token = null;
       if (typeof window !== "undefined") {

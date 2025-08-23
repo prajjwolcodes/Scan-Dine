@@ -3,27 +3,34 @@
 import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+// import Loading from "@/components/Loading"; // Assuming you have a loading component
 
 export default function ProtectedRoute({ children, allowedRoles }) {
   const router = useRouter();
   const { user, token } = useSelector((state) => state.auth);
-  const [isChecking, setIsChecking] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token === null && user === null) {
-      // still initializing from localStorage, so wait
+    // Wait for the Redux store to be hydrated
+    if (token === undefined || user === undefined) {
+      // Still initializing from localStorage, so wait
       return;
     }
+
     if (!token) {
+      router.replace("/auth/login");
     } else if (!allowedRoles.includes(user?.role)) {
-      router.replace("/unauthorized"); // or home
+      router.replace("/unauthorized");
+    } else {
+      setLoading(false); // Authentication check passed, stop loading
     }
-    setIsChecking(false);
   }, [user, token, router, allowedRoles]);
 
-  if (isChecking || (token && user)) {
-    return <div>Authorizing...</div>;
+  if (loading) {
+    // Show a loading state or nothing while checking auth
+    return <div>Loading...</div>;
   }
 
+  // Only render children if the authentication check passed
   return <>{children}</>;
 }

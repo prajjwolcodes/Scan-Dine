@@ -1,8 +1,7 @@
-import Socket from "@/utils/socket";
 import React from "react";
 
 const page = () => {
-  return <div>Scan & Dine</div>;
+  return <div>Categories Page</div>;
 };
 
 export default page;

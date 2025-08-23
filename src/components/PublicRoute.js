@@ -8,21 +8,23 @@ export default function PublicRoute({ children, redirectTo = "/" }) {
   const router = useRouter();
   const { user, token } = useSelector((state) => state.auth);
 
-  const [hydrated, setHydrated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
+    // Wait for the Redux store to be hydrated
+    if (token === undefined || user === undefined) {
+      // Still initializing from localStorage, so wait
+      return;
+    }
 
     if (token && user) {
       router.replace(redirectTo);
+    } else if (!token && !user) {
+      setLoading(false); // No user or token, stop loading
     }
-  }, [token, user, hydrated, router, redirectTo]);
+  }, [token, user, loading, router, redirectTo]);
 
-  if (!hydrated || (token && user)) {
+  if (loading || (token && user)) {
     return <p>Loading...</p>;
   }
 

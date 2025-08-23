@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { toast } from "react-hot-toast";
 import { logout, signup } from "@/app/store/authSlice";
 import PublicRoute from "@/components/PublicRoute";
+import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const dispatch = useDispatch();
+  const router = useRouter();
   const { loading, user, token } = useSelector((state) => state.auth);
 
   const handleSubmit = async (e) => {
@@ -20,7 +22,7 @@ export default function SignupPage() {
       if (signup.fulfilled.match(result)) {
         toast.success("Signup successful");
         setForm({ username: "", email: "", password: "" });
-        router.push("/dashboard");
+        router.push("/owner/restaurant-details");
       } else {
         toast.error(result.payload.message || "Signup failed");
       }

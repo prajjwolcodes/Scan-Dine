@@ -28,7 +28,14 @@ export const registerOwner = async (req, res) => {
     const token = generateToken(user);
     res.status(201).json({
       success: true,
-      user: { _id: user._id, username: user.username, role: user.role },
+      user: {
+        _id: user._id,
+        username: user.username,
+        role: user.role,
+        hasRestaurant: false,
+        hasCategories: false,
+        hasMenu: false,
+      },
       token,
     });
   } catch (err) {
