@@ -94,7 +94,8 @@ export const updateMenuItem = async (req, res) => {
     if (!restaurant)
       return res.status(404).json({ message: "Restaurant not found" });
 
-    const menuItem = await MenuItem.findById(id);
+    const menuItem = await MenuItem.findById(id).populate("category", "name");
+
     if (!menuItem)
       return res.status(404).json({ message: "Menu item not found" });
 
@@ -114,8 +115,10 @@ export const updateMenuItem = async (req, res) => {
     menuItem.description = description;
     menuItem.price = price;
     menuItem.image = image;
-    menuItem.category = category._id;
-
+    menuItem.category = {
+      _id: category._id,
+      name: category.name,
+    };
     await menuItem.save();
     res.json({
       success: true,

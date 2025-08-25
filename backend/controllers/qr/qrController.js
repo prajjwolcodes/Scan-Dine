@@ -1,8 +1,12 @@
 import Restaurant from "../../models/restaurantSchema.js";
+import User from "../../models/userSchema.js";
 import { generateQR } from "../../utils/qrCodeGenerator.js";
 
 export const generateRestaurantQR = async (req, res) => {
   try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
     const restaurant = await Restaurant.findById(req.user.restaurant);
     if (!restaurant)
       return res.status(404).json({ message: "Restaurant not found" });
