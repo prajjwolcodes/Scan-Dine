@@ -6,9 +6,8 @@ const userSchema = new mongoose.Schema(
     email: { type: String, unique: true },
     password: String,
     role: { type: String, enum: ["owner", "chef"], required: true },
-    restaurant: [{ type: mongoose.Schema.Types.ObjectId, ref: "Restaurant" }],
+    restaurant: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant" },
     hasRestaurant: { type: Boolean, default: false },
-    hasCategories: { type: Boolean, default: false },
     hasMenu: { type: Boolean, default: false },
   },
   { timestamps: true }

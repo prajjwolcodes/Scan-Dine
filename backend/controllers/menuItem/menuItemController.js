@@ -1,12 +1,14 @@
 import Category from "../../models/categorySchema.js";
 import MenuItem from "../../models/menuItemSchema.js";
 import Restaurant from "../../models/restaurantSchema.js";
+import User from "../../models/userSchema.js";
 
 export const addMenuItem = async (req, res) => {
   try {
     const { name, description, price, image, categoryId } = req.body;
-
-    const restaurant = await Restaurant.findById(req.user.restaurant);
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const restaurant = await Restaurant.findById(user.restaurant);
     if (!restaurant)
       return res.status(404).json({ message: "Restaurant not found" });
 
@@ -26,6 +28,8 @@ export const addMenuItem = async (req, res) => {
       image,
     });
 
+    await User.findByIdAndUpdate(req.user._id, { hasMenu: true });
+
     res.status(201).json({
       success: true,
       message: "Menu item added successfully",
@@ -37,9 +41,11 @@ export const addMenuItem = async (req, res) => {
 };
 
 export const getMenuItems = async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) return res.status(404).json({ message: "User not found" });
   try {
     const menuItems = await MenuItem.find({
-      restaurant: req.user.restaurant,
+      restaurant: user.restaurant,
     }).populate("category", "name");
     res.json({
       success: true,
@@ -54,8 +60,10 @@ export const getMenuItems = async (req, res) => {
 export const removeMenuItems = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    const restaurant = await Restaurant.findById(req.user.restaurant);
+    const restaurant = await Restaurant.findById(user.restaurant);
     if (!restaurant)
       return res.status(404).json({ message: "Restaurant not found" });
 
@@ -79,8 +87,10 @@ export const updateMenuItem = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, price, image, categoryId } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    const restaurant = await Restaurant.findById(req.user.restaurant);
+    const restaurant = await Restaurant.findById(user.restaurant);
     if (!restaurant)
       return res.status(404).json({ message: "Restaurant not found" });
 

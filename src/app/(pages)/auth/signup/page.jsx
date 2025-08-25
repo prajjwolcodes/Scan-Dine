@@ -19,6 +19,7 @@ export default function SignupPage() {
     e.preventDefault();
     try {
       const result = await dispatch(signup(form));
+
       if (signup.fulfilled.match(result)) {
         toast.success("Signup successful");
         setForm({ username: "", email: "", password: "" });
@@ -32,7 +33,7 @@ export default function SignupPage() {
   };
 
   return (
-    <PublicRoute redirectTo="/dashboard">
+    <PublicRoute redirectTo="/owner/dashboard">
       <div className="flex items-center justify-center h-screen bg-gray-50">
         {user && token && (
           <button onClick={() => dispatch(logout())}>Logout</button>

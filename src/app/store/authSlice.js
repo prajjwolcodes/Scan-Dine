@@ -33,13 +33,16 @@ const authSlice = createSlice({
   },
   reducers: {
     logout: (state) => {
-      console.log("hello");
       state.user = null;
       state.token = null;
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
       }
+    },
+    updateUser: (state, action) => {
+      state.user = { ...state.user, ...action.payload };
+      localStorage.setItem("user", JSON.stringify(state.user));
     },
     setInitialState: (state, action) => {
       state.user = action.payload.user;
@@ -83,5 +86,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, setInitialState } = authSlice.actions;
+export const { logout, setInitialState, updateUser } = authSlice.actions;
 export default authSlice.reducer;

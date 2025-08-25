@@ -1,11 +1,14 @@
 import Category from "../../models/categorySchema.js";
 import Restaurant from "../../models/restaurantSchema.js";
+import User from "../../models/userSchema.js";
 
 export const addCategory = async (req, res) => {
   try {
     const { name, description } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    const restaurant = await Restaurant.findById(req.user.restaurant);
+    const restaurant = await Restaurant.findById(user.restaurant);
     if (!restaurant)
       return res.status(404).json({ message: "Restaurant not found" });
 
@@ -14,6 +17,7 @@ export const addCategory = async (req, res) => {
       name,
       description,
     });
+    await User.findByIdAndUpdate(req.user._id, { hasMenu: true });
 
     res.status(201).json({
       success: true,
@@ -27,7 +31,9 @@ export const addCategory = async (req, res) => {
 
 export const getCategories = async (req, res) => {
   try {
-    const restaurant = await Restaurant.findById(req.user.restaurant);
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const restaurant = await Restaurant.findById(user.restaurant);
     if (!restaurant)
       return res.status(404).json({ message: "Restaurant not found" });
 
@@ -45,8 +51,10 @@ export const getCategories = async (req, res) => {
 export const removeCategory = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    const restaurant = await Restaurant.findById(req.user.restaurant);
+    const restaurant = await Restaurant.findById(user.restaurant);
     if (!restaurant)
       return res.status(404).json({ message: "Restaurant not found" });
 

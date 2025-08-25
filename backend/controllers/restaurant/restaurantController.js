@@ -37,7 +37,10 @@ export const createRestaurant = async (req, res) => {
     });
 
     // link owner with restaurant
-    await User.findByIdAndUpdate(req.user._id, { restaurant: restaurant._id });
+    await User.findByIdAndUpdate(req.user._id, {
+      restaurant: restaurant._id,
+      hasRestaurant: true,
+    });
 
     res.status(201).json({
       success: true,
@@ -50,11 +53,13 @@ export const createRestaurant = async (req, res) => {
 
 export const getMyRestaurant = async (req, res) => {
   try {
-    if (!req.user.restaurant) {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user.restaurant) {
       return res.status(404).json({ message: "No restaurant assigned" });
     }
 
-    const restaurant = await Restaurant.findById(req.user.restaurant)
+    const restaurant = await Restaurant.findById(user.restaurant)
       .populate("owner", "username email")
       .populate("chefs", "username email");
 

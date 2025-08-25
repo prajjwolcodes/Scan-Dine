@@ -4,7 +4,13 @@ import bcrypt from "bcrypt";
 
 const generateToken = (user) => {
   return jwt.sign(
-    { _id: user._id, role: user.role, restaurant: user.restaurant },
+    {
+      _id: user._id,
+      role: user.role,
+      restaurant: user.restaurant || null,
+      hasMenu: user.hasMenu,
+      hasRestaurant: user.hasRestaurant,
+    },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -12,14 +18,14 @@ const generateToken = (user) => {
 
 export const registerOwner = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { name, email, password } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "Email already in use" });
 
     const user = await User.create({
-      username,
+      name,
       email,
       password: bcrypt.hashSync(password, 10),
       role: "owner",
@@ -30,11 +36,11 @@ export const registerOwner = async (req, res) => {
       success: true,
       user: {
         _id: user._id,
-        username: user.username,
+        name: user.name,
         role: user.role,
-        hasRestaurant: false,
-        hasCategories: false,
-        hasMenu: false,
+        hasRestaurant: user.hasRestaurant,
+        hasMenu: user.hasMenu,
+        restaurant: user.restaurant || null,
       },
       token,
     });
@@ -60,7 +66,14 @@ export const login = async (req, res) => {
     const token = generateToken(user);
     res.json({
       success: true,
-      user: { _id: user._id, username: user.username, role: user.role },
+      user: {
+        _id: user._id,
+        name: user.name,
+        role: user.role,
+        hasRestaurant: user.hasRestaurant,
+        hasMenu: user.hasMenu,
+        restaurant: user.restaurant || null,
+      },
       token,
     });
   } catch (err) {

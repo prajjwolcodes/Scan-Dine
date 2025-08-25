@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { login, logout } from "@/app/store/authSlice";
 import { useRouter } from "next/navigation";
 import PublicRoute from "@/components/PublicRoute";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -18,11 +19,12 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       const result = await dispatch(login(form));
+      console.log(result);
       if (login.fulfilled.match(result)) {
         toast.success("Login successful");
         setForm({ email: "", password: "" });
         if (result.payload.user.role === "owner") {
-          router.push("/dashboard");
+          router.push("/owner/dashboard");
         } else {
           router.push("/chef");
         }
@@ -35,7 +37,7 @@ export default function LoginPage() {
   };
 
   return (
-    <PublicRoute redirectTo="/dashboard">
+    <PublicRoute redirectTo="/owner/dashboard">
       <div className="flex items-center justify-center h-screen bg-gray-50">
         {user && token && (
           <button onClick={() => dispatch(logout())}>Logout</button>
@@ -60,6 +62,12 @@ export default function LoginPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Loading..." : "Login"}
           </Button>
+          <p className="text-center text-sm text-gray-500">
+            Don't have an account?{" "}
+            <Link href="/auth/signup" className="text-blue-500">
+              Register
+            </Link>
+          </p>
         </form>
       </div>
     </PublicRoute>

@@ -1,45 +1,54 @@
 "use client";
 
 import { useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 export default function OwnerRoute({ children }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, token } = useSelector((state) => state.auth);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Wait for the Redux store to be hydrated
-    if (token === undefined || user === undefined) {
-      // Still initializing from localStorage, so wait
+    // Wait for Redux store to be hydrated
+    if (user === undefined || token === undefined) {
       return;
     }
 
-    if (!token || user?.role !== "owner") {
+    // Authentication Check
+    if (!token) {
       router.replace("/auth/login");
       return;
     }
 
-    // 🚦 Redirect based on progress
-    if (user?.role === "owner") {
-      if (!user?.hasRestaurant) {
-        router.replace("/owner/restaurant-details");
-        return;
-      }
-      if (!user?.hasCategories) {
-        router.replace("/owner/categories");
-        return;
-      }
-      if (!user?.hasMenu) {
-        router.replace("/owner/menu");
-        return;
-      }
+    // Onboarding Flow Redirects
+    let redirectPath = null;
+    if (!user?.hasRestaurant) {
+      redirectPath = "/owner/restaurant-details";
+    } else if (user?.hasRestaurant && !user?.hasMenu) {
+      redirectPath = "/owner/menu";
     }
-    setLoading(false);
-  }, [loading, token, user, router]);
 
-  if (loading) return <div>Loading...</div>;
+    // Perform Redirect if necessary
+    if (redirectPath && pathname !== redirectPath) {
+      router.replace(redirectPath);
+    }
+  }, [user, token, router, pathname]);
 
+  // Conditional Rendering
+  // Only render a loading state when the auth state is still hydrating
+  if (user === undefined || token === undefined) {
+    return <div>Loading ...</div>;
+  }
+
+  // If a redirect is pending, don't render children to prevent a flash of content
+  if (
+    (!user?.hasRestaurant && pathname !== "/owner/restaurant-details") ||
+    (user?.hasRestaurant && !user?.hasMenu && pathname !== "/owner/menu")
+  ) {
+    return <div>Loading...</div>; // Return nothing while the redirect is in progress
+  }
+
+  // If all checks pass and the current path is correct, render the children
   return <>{children}</>;
 }
