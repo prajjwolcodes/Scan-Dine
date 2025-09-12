@@ -57,6 +57,22 @@ export const getMenuItems = async (req, res) => {
   }
 };
 
+export const getCustomerMenuItems = async (req, res) => {
+  const { restaurantId } = req.params;
+  try {
+    const menuItems = await MenuItem.find({
+      restaurant: restaurantId,
+    }).populate("category", "name");
+    res.json({
+      success: true,
+      message: "Menu items fetched successfully",
+      menuItems,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export const removeMenuItems = async (req, res) => {
   try {
     const { id } = req.params;

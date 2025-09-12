@@ -1,4 +1,6 @@
+import Restaurant from "../../models/restaurantSchema.js";
 import User from "../../models/userSchema.js";
+import bcrypt from "bcrypt";
 
 export const createChef = async (req, res) => {
   try {
@@ -6,24 +8,35 @@ export const createChef = async (req, res) => {
       return res.status(403).json({ message: "Only owners can create chefs" });
     }
 
-    const { username, email, password } = req.body;
+    const { username, email, password, restaurant } = req.body;
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email, role: "chef" , restaurant: restaurant });
     if (existingUser)
-      return res.status(400).json({ message: "Email already in use" });
+      return res.status(400).json({ message: "Chef already assigned with that email" });
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const existingRestaurant = await Restaurant.findOne({
+      _id: restaurant,
+    });
+
+    if(!existingRestaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
 
     const chef = await User.create({
       username,
       email,
-      password,
+      password: bcrypt.hashSync(password, 10),
       role: "chef",
-      restaurant: req.user.restaurant, // link chef to owner’s restaurant
+      restaurant: existingRestaurant._id, // link chef to owner’s restaurant
     });
 
     res.status(201).json({
       success: true,
       message: "Chef created successfully",
-      chef: { id: chef._id, username: chef.username, role: chef.role },
+      chef: { id: chef._id, username: chef.username, email:chef.email, role: chef.role },
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -31,10 +44,20 @@ export const createChef = async (req, res) => {
 };
 
 export const getAllChefs = async (req, res) => {
+const {restaurant} = req.body;
+  if (req.user.role !== "owner") {
+    return res.status(403).json({ message: "Only owners can view chefs" });
+  }
+  const existingRestaurant = await Restaurant.findOne({
+    _id: restaurant,
+  });
+  if(!existingRestaurant) {
+    return res.status(404).json({ message: "Restaurant not found" });
+  }
   try {
     const chefs = await User.find({
       role: "chef",
-      restaurant: req.user.restaurant,
+      restaurant: existingRestaurant._id,
     });
     res.status(200).json({
       success: true,
@@ -42,6 +65,7 @@ export const getAllChefs = async (req, res) => {
       chefs: chefs.map((chef) => ({
         id: chef._id,
         username: chef.username,
+      email: chef.email,
         role: chef.role,
       })),
     });

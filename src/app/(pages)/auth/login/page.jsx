@@ -26,7 +26,7 @@ export default function LoginPage() {
         if (result.payload.user.role === "owner") {
           router.push("/owner/dashboard");
         } else {
-          router.push("/chef");
+          router.push("/chef/dashboard");
         }
       } else {
         toast.error(result.payload.message || "Login failed");

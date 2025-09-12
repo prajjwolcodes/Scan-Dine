@@ -48,6 +48,24 @@ export const getCategories = async (req, res) => {
   }
 };
 
+export const getCustomerCategories = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant)
+      return res.status(404).json({ message: "Restaurant not found" });
+
+    const categories = await Category.find({ restaurant: restaurant._id });
+    res.json({
+      success: true,
+      message: "Categories fetched successfully",
+      categories,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 export const removeCategory = async (req, res) => {
   try {
     const { id } = req.params;

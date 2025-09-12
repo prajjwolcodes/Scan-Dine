@@ -6,6 +6,7 @@ import {
   listAllOrders,
   updateOrderStatus,
   updateOrderPayment,
+  getOrderDetails,
 } from "../controllers/orders/orderController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import roleMiddleware from "../middleware/roleMiddleware.js";
@@ -40,5 +41,6 @@ router.patch(
   roleMiddleware(["owner", "chef"]),
   updateOrderPayment
 );
+router.get("/order/:id", getOrderDetails);
 
 export default router;

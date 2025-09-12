@@ -34,6 +34,8 @@ const orderSchema = new mongoose.Schema({
     enum: ["cash", "khalti", "esewa"],
     default: "cash",
   },
+  customerName: { type: String, required: true },
+  customerPhone: { type: String, required: true },
   paymentStatus: { type: String, enum: ["unpaid", "paid"], default: "unpaid" },
   createdAt: { type: Date, default: Date.now },
 });

@@ -23,7 +23,7 @@ connectDb();
 app.use(
   cors({
     origin: "*", // your Next.js frontend
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
 );

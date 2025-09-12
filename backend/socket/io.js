@@ -5,7 +5,10 @@ export let io = null;
 
 export function initSocket(httpServer) {
   io = new Server(httpServer, {
-    cors: { origin: "*", methods: ["GET", "POST", "PATCH"] },
+    cors: {
+      origin: "http://localhost:3000",
+      methods: ["GET", "POST"],
+    },
   });
 
   io.on("connection", (socket) => {

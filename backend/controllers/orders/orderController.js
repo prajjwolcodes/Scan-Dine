@@ -1,3 +1,4 @@
+import e from "express";
 import Order from "../../models/orderSchema.js";
 import Restaurant from "../../models/restaurantSchema.js";
 import { io } from "../../socket/io.js";
@@ -5,7 +6,8 @@ import { buildOrderLines } from "../../utils/orderLineUp.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const { restaurantId, tableNumber, items } = req.body;
+    const { restaurantId, tableNumber, items, customerName, customerPhone } =
+      req.body;
 
     // 1) Basic checks
     if (!restaurantId || !tableNumber) {
@@ -29,6 +31,8 @@ export const createOrder = async (req, res) => {
       totalAmount: total,
       status: "pending",
       paymentStatus: "unpaid",
+      customerName,
+      customerPhone,
     });
 
     // 4) Emit to kitchen (chefs joined this room)
@@ -65,15 +69,21 @@ export const listActiveOrders = async (req, res) => {
 
 export const listAllOrders = async (req, res) => {
   try {
-    const restaurantId = req.user.restaurant; // from auth middleware (owner/chef)
+    const existingRestaurant = await Restaurant.findOne({
+      _id: req.user.restaurant,
+    });
+    if(!existingRestaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
 
-    const orders = await Order.find({ restaurant: restaurantId }).sort({
+    const orders = await Order.find({ restaurant: existingRestaurant._id }).sort({
       createdAt: -1,
     });
     res.json({
       success: true,
       message: "All orders retrieved successfully",
       orders,
+      restaurant: existingRestaurant,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -134,6 +144,26 @@ export const updateOrderPayment = async (req, res) => {
     res.json({
       success: true,
       message: "Payment status updated successfully",
+      order,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// this is for the customer who dont have to login
+export const getOrderDetails = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+
+    const order = await Order.findOne({
+      _id: orderId,
+    });
+
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    res.json({
+      success: true,
       order,
     });
   } catch (err) {

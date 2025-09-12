@@ -2,20 +2,51 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Pencil, Trash, Download, Printer } from "lucide-react";
 import api from "@/lib/axios";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 
 export default function OwnerDashboard() {
+  const { token, user } = useSelector((state) => state.auth);
+
   const [qrGenerated, setQrGenerated] = useState(false);
-  const { token } = useSelector((state) => state.auth);
   const [qrUrl, setQrUrl] = useState(null);
 
   const [categories, setCategories] = useState([]);
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Create forms
+  const [catForm, setCatForm] = useState({ name: "", description: "" });
+  const [menuForm, setMenuForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    image: "",
+    available: true,
+    categoryId: "",
+  });
+
+  const [chefs, setChefs] = useState([]);
+  const [chefForm, setChefForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
 
   // Edit states
   const [editingCategory, setEditingCategory] = useState(null);
@@ -29,6 +60,7 @@ export default function OwnerDashboard() {
     name: "",
     description: "",
     price: "",
+    image: "",
     available: true,
     categoryId: "",
   });
@@ -36,15 +68,25 @@ export default function OwnerDashboard() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [catRes, menuRes] = await Promise.all([
+        const [catRes, menuRes, chefRes] = await Promise.all([
           api.get("/category", {
             headers: { Authorization: `Bearer ${token}` },
           }),
           api.get("/menu-items", {
             headers: { Authorization: `Bearer ${token}` },
           }),
+          api.post(
+            "/auth/chefs",
+            {
+              restaurant: user.restaurant,
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          ),
         ]);
 
+        setChefs(chefRes.data.chefs || []);
         setCategories(catRes.data.categories || []);
         setMenuItems(menuRes.data.menuItems || []);
       } catch (err) {
@@ -53,20 +95,16 @@ export default function OwnerDashboard() {
         setLoading(false);
       }
     }
-
     fetchData();
-  }, []);
+  }, [token]);
 
+  // ---------- QR ----------
   const handleGenerateQr = async () => {
     try {
       const res = await api.post(
         "/qr/generate",
         {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setQrGenerated(true);
       setQrUrl(res.data.qrCodeUrl);
@@ -83,10 +121,25 @@ export default function OwnerDashboard() {
     }
   };
 
-  // ----------- CATEGORY ACTIONS -----------
+  // ---------- CATEGORY ----------
+  const handleCategorySubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post(
+        "/category",
+        { ...catForm, restaurant: user.restaurant },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCategories([...categories, res.data.category]);
+      setCatForm({ name: "", description: "" });
+      toast.success("Category created!");
+    } catch {
+      toast.error("Failed to create category");
+    }
+  };
+
   const saveCategory = async (id) => {
     try {
-      const token = localStorage.getItem("token");
       const res = await api.put(`/category/${id}`, editCategoryForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -103,7 +156,6 @@ export default function OwnerDashboard() {
   const deleteCategory = async (id) => {
     if (!confirm("Are you sure you want to delete this category?")) return;
     try {
-      const token = localStorage.getItem("token");
       await api.delete(`/category/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -114,10 +166,36 @@ export default function OwnerDashboard() {
     }
   };
 
-  // ----------- MENU ACTIONS -----------
+  // ---------- MENU ----------
+  const handleMenuSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post(
+        "/menu-items",
+        {
+          ...menuForm,
+          price: Number(menuForm.price),
+          restaurant: user.restaurant,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMenuItems([...menuItems, res.data.menuItem]);
+      setMenuForm({
+        name: "",
+        description: "",
+        price: "",
+        image: "",
+        available: true,
+        categoryId: "",
+      });
+      toast.success("Menu item created!");
+    } catch {
+      toast.error("Failed to create menu item");
+    }
+  };
+
   const saveMenu = async (id) => {
     try {
-      const token = localStorage.getItem("token");
       const res = await api.put(`/menu-items/${id}`, editMenuForm, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -134,7 +212,6 @@ export default function OwnerDashboard() {
   const deleteMenu = async (id) => {
     if (!confirm("Are you sure you want to delete this menu item?")) return;
     try {
-      const token = localStorage.getItem("token");
       await api.delete(`/menu-items/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -145,11 +222,36 @@ export default function OwnerDashboard() {
     }
   };
 
+  const handleAddChef = async (e) => {
+    e.preventDefault();
+    console.log(chefForm);
+    try {
+      const res = await api.post(
+        "/auth/createchef",
+        { ...chefForm, restaurant: user.restaurant },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log(res);
+      setChefs([...chefs, res.data.chef]);
+      setChefForm({
+        username: "",
+        email: "",
+        password: "",
+      });
+      setIsDialogOpen(false);
+      toast.success("Chef added!");
+    } catch (error) {
+      console.log(error);
+      toast.error(error.response.data.message || "Failed to add chef");
+    }
+  };
+
   if (loading) return <p className="p-6">Loading...</p>;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
-      {/* QR Code Section */}
+      {/* ---------- QR Section ---------- */}
       <Card className="lg:col-span-1">
         <CardHeader>
           <CardTitle>Restaurant QR Code</CardTitle>
@@ -176,10 +278,109 @@ export default function OwnerDashboard() {
         </CardContent>
       </Card>
 
-      {/* Categories Section */}
+      <Card className="lg:col-span-2">
+        <div className="flex ictems-center justify-between">
+          <CardHeader>
+            <CardTitle>Chefs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>Add Chef</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add Chef</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddChef} className="space-y-4">
+                  <Input
+                    placeholder="Username"
+                    type="text"
+                    required
+                    value={chefForm.username}
+                    onChange={(e) =>
+                      setChefForm({ ...chefForm, username: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Email"
+                    type="email"
+                    required
+                    value={chefForm.email}
+                    onChange={(e) =>
+                      setChefForm({ ...chefForm, email: e.target.value })
+                    }
+                  />
+                  <Input
+                    placeholder="Password"
+                    type="password"
+                    required
+                    value={chefForm.password}
+                    onChange={(e) =>
+                      setChefForm({ ...chefForm, password: e.target.value })
+                    }
+                  />
+                  <Button type="submit" className="w-full">
+                    Add
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </div>
+        <CardContent>
+          <div className="space-y-2">
+            {chefs.length === 0 ? (
+              <p className="text-gray-500">No chefs yet.</p>
+            ) : (
+              chefs.map((chef, index) => (
+                <div key={index}>
+                  <p className="font-semibold">
+                    {chef.username} ({chef.email})
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ---------- Category List And Create ---------- */}
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle>Categories</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            Categories
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>Create Category</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create Category</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleCategorySubmit} className="space-y-4">
+                  <Input
+                    placeholder="Name"
+                    value={catForm.name}
+                    onChange={(e) =>
+                      setCatForm({ ...catForm, name: e.target.value })
+                    }
+                    required
+                  />
+                  <Input
+                    placeholder="Description"
+                    value={catForm.description}
+                    onChange={(e) =>
+                      setCatForm({ ...catForm, description: e.target.value })
+                    }
+                  />
+                  <Button type="submit" className="w-full">
+                    Add
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -193,7 +394,7 @@ export default function OwnerDashboard() {
                 >
                   {editingCategory === cat._id ? (
                     <div className="flex gap-2 flex-1">
-                      <input
+                      <Input
                         value={editCategoryForm.name}
                         onChange={(e) =>
                           setEditCategoryForm({
@@ -201,9 +402,8 @@ export default function OwnerDashboard() {
                             name: e.target.value,
                           })
                         }
-                        className="border rounded p-1 flex-1"
                       />
-                      <input
+                      <Input
                         value={editCategoryForm.description}
                         onChange={(e) =>
                           setEditCategoryForm({
@@ -211,7 +411,6 @@ export default function OwnerDashboard() {
                             description: e.target.value,
                           })
                         }
-                        className="border rounded p-1 flex-1"
                       />
                       <Button size="sm" onClick={() => saveCategory(cat._id)}>
                         Save
@@ -263,10 +462,82 @@ export default function OwnerDashboard() {
         </CardContent>
       </Card>
 
-      {/* Menu Items Section */}
+      {/* ---------- Menu List ---------- */}
       <Card className="lg:col-span-3">
         <CardHeader>
-          <CardTitle>Menu Items</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            Menu Items
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>Create Menu</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create Menu</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleMenuSubmit} className="space-y-4">
+                  <Input
+                    placeholder="Name"
+                    value={menuForm.name}
+                    onChange={(e) =>
+                      setMenuForm({ ...menuForm, name: e.target.value })
+                    }
+                    required
+                  />
+                  <Textarea
+                    placeholder="Description"
+                    value={menuForm.description}
+                    onChange={(e) =>
+                      setMenuForm({ ...menuForm, description: e.target.value })
+                    }
+                  />
+                  <Input
+                    type="number"
+                    placeholder="Price"
+                    value={menuForm.price}
+                    onChange={(e) =>
+                      setMenuForm({ ...menuForm, price: e.target.value })
+                    }
+                    required
+                  />
+                  <Input
+                    placeholder="Image URL"
+                    value={menuForm.image}
+                    onChange={(e) =>
+                      setMenuForm({ ...menuForm, image: e.target.value })
+                    }
+                  />
+                  <select
+                    value={menuForm.categoryId}
+                    onChange={(e) =>
+                      setMenuForm({ ...menuForm, categoryId: e.target.value })
+                    }
+                    className="w-full border rounded-md p-2"
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={menuForm.available}
+                      onCheckedChange={(val) =>
+                        setMenuForm({ ...menuForm, available: val })
+                      }
+                    />
+                    <Label>Available</Label>
+                  </div>
+                  <Button type="submit" className="w-full">
+                    Add
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -280,7 +551,7 @@ export default function OwnerDashboard() {
                 >
                   {editingMenu === item._id ? (
                     <div className="flex gap-2 flex-1">
-                      <input
+                      <Input
                         value={editMenuForm.name}
                         onChange={(e) =>
                           setEditMenuForm({
@@ -288,9 +559,8 @@ export default function OwnerDashboard() {
                             name: e.target.value,
                           })
                         }
-                        className="border rounded p-1 flex-1"
                       />
-                      <input
+                      <Input
                         type="number"
                         value={editMenuForm.price}
                         onChange={(e) =>
@@ -299,9 +569,9 @@ export default function OwnerDashboard() {
                             price: Number(e.target.value),
                           })
                         }
-                        className="border rounded p-1 w-20"
+                        className="w-24"
                       />
-                      <input
+                      <select
                         value={editMenuForm.categoryId}
                         onChange={(e) =>
                           setEditMenuForm({
@@ -309,8 +579,15 @@ export default function OwnerDashboard() {
                             categoryId: e.target.value,
                           })
                         }
-                        className="border rounded p-1 w-32"
-                      />
+                        className="border rounded-md p-1"
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
                       <Button size="sm" onClick={() => saveMenu(item._id)}>
                         Save
                       </Button>
@@ -343,6 +620,7 @@ export default function OwnerDashboard() {
                               name: item.name,
                               description: item.description,
                               price: item.price,
+                              image: item.image,
                               available: item.available,
                               categoryId: item.category._id,
                             });
