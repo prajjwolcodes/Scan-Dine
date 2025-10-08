@@ -247,6 +247,19 @@ export default function OwnerDashboard() {
     }
   };
 
+  const removeChef = async (id) => {
+    if (!confirm("Are you sure you want to remove this chef?")) return;
+    try {
+      const res = await api.delete(`/auth/chef/remove/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setChefs(chefs.filter((c) => c._id !== id));
+      toast.success("Chef removed!");
+    } catch {
+      toast.error("Failed to remove chef");
+    }
+  };
+
   if (loading) return <p className="p-6">Loading...</p>;
 
   return (
@@ -334,10 +347,20 @@ export default function OwnerDashboard() {
               <p className="text-gray-500">No chefs yet.</p>
             ) : (
               chefs.map((chef, index) => (
-                <div key={index}>
+                <div
+                  key={index}
+                  className="w-full flex items-center justify-between p-2 rounded-md"
+                >
                   <p className="font-semibold">
                     {chef.username} ({chef.email})
                   </p>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => removeChef(chef._id)}
+                  >
+                    Remove
+                  </Button>
                 </div>
               ))
             )}

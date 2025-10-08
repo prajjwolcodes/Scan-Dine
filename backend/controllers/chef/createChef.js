@@ -63,12 +63,30 @@ const {restaurant} = req.body;
       success: true,
       message: "Chefs retrieved successfully",
       chefs: chefs.map((chef) => ({
-        id: chef._id,
+        _id: chef._id,
         username: chef.username,
       email: chef.email,
         role: chef.role,
       })),
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const removeChef = async (req, res) => {
+  if (req.user.role !== "owner") {
+    return res.status(403).json({ message: "Only owners can remove chefs" });
+  }
+  const { chefId } = req.params;
+  console.log(chefId)
+  try {
+    const chef = await User.findOne({ _id: chefId, role: "chef" });
+    if (!chef) {
+      return res.status(404).json({ message: "Chef not found" });
+    }
+    await User.deleteOne({ _id: chefId });
+    res.status(200).json({ message: "Chef removed successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast";
 import { logout, signup } from "@/app/store/authSlice";
 import PublicRoute from "@/components/PublicRoute";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function SignupPage() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -63,6 +64,12 @@ export default function SignupPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Loading..." : "Signup"}
           </Button>
+          <p className="text-center text-sm text-gray-500">
+            Already have an account?{" "}
+            <Link href="/auth/login" className="text-blue-500">
+              login
+            </Link>
+          </p>
         </form>
       </div>
     </PublicRoute>
