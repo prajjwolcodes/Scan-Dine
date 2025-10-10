@@ -48,12 +48,14 @@ export default function LoginPage() {
         >
           <h1 className="text-xl font-bold text-center">Login</h1>
           <Input
+            name="email"
             placeholder="Email"
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <Input
+            name="password"
             placeholder="Password"
             type="password"
             value={form.password}

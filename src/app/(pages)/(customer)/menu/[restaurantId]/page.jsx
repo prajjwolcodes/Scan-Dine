@@ -92,7 +92,10 @@ export default function RestaurantMenuPage() {
           className="w-12 h-12 rounded-full object-cover"
         />
         <div>
-          <h1 className="text-lg font-semibold">
+          <h1
+            onClick={() => console.log(restaurant)}
+            className="text-lg font-semibold"
+          >
             {restaurant?.name || "Menu"}
           </h1>
           <p className="text-sm text-gray-500">Tap items to add to cart</p>

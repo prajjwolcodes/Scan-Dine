@@ -18,14 +18,14 @@ const generateToken = (user) => {
 
 export const registerOwner = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { username, email, password } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "Email already in use" });
 
     const user = await User.create({
-      name,
+      username,
       email,
       password: bcrypt.hashSync(password, 10),
       role: "owner",
@@ -36,7 +36,7 @@ export const registerOwner = async (req, res) => {
       success: true,
       user: {
         _id: user._id,
-        name: user.name,
+        username: user.username,
         role: user.role,
         hasRestaurant: user.hasRestaurant,
         hasMenu: user.hasMenu,
@@ -68,7 +68,7 @@ export const login = async (req, res) => {
       success: true,
       user: {
         _id: user._id,
-        name: user.name,
+        username: user.username,
         role: user.role,
         hasRestaurant: user.hasRestaurant,
         hasMenu: user.hasMenu,

@@ -42,6 +42,7 @@ export default function CartDrawer({ restaurantId }) {
       const res = await dispatch(
         placeOrder({ restaurantId, tableNumber, customerName, customerPhone })
       );
+      dispatch(clearCart());
       if (res.meta.requestStatus === "fulfilled") {
         router.push(`/orderSuccess/${res.payload.order._id}`);
       }

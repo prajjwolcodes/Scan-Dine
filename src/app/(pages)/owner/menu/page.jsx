@@ -21,6 +21,8 @@ export default function RestaurantDashboard() {
   const [categories, setCategories] = useState([]);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editCatForm, setEditCatForm] = useState({ name: "", description: "" });
+  const [uploading, setUploading] = useState(false);
+  const [uploadingEdit, setUploadingEdit] = useState(false);
 
   // MENU state
   const [menuForm, setMenuForm] = useState({
@@ -45,6 +47,61 @@ export default function RestaurantDashboard() {
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [menuLoading, setMenuLoading] = useState(false);
   const router = useRouter();
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_UPLOAD_PRESET);
+
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const data = await res.json();
+      if (data.secure_url) {
+        setMenuForm({ ...menuForm, image: data.secure_url });
+        toast.success("Image uploaded!");
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (err) {
+      toast.error("Image upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleEditImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingEdit(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_UPLOAD_PRESET);
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUD_NAME}/image/upload`,
+        { method: "POST", body: formData }
+      );
+      const data = await res.json();
+      if (data.secure_url) {
+        setEditMenuForm((f) => ({ ...f, image: data.secure_url }));
+        toast.success("Image updated!");
+      } else throw new Error();
+    } catch {
+      toast.error("Failed to upload new image");
+    } finally {
+      setUploadingEdit(false);
+    }
+  };
 
   // 🔹 Fetch categories + menu items
   useEffect(() => {
@@ -315,12 +372,29 @@ export default function RestaurantDashboard() {
           onChange={(e) => setMenuForm({ ...menuForm, price: e.target.value })}
           required
         />
-        <Input
+        {/* <Input
           name="image"
           placeholder="Image URL"
           value={menuForm.image}
           onChange={(e) => setMenuForm({ ...menuForm, image: e.target.value })}
-        />
+        /> */}
+        <div className="space-y-2">
+          <Label>Upload Image</Label>
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            disabled={uploading}
+          />
+          {uploading && <p className="text-sm text-gray-500">Uploading...</p>}
+          {menuForm.image && (
+            <img
+              src={menuForm.image}
+              alt="Preview"
+              className="w-32 h-32 object-cover rounded-md mt-2"
+            />
+          )}
+        </div>
         <select
           name="categoryId"
           value={menuForm.categoryId}
@@ -383,7 +457,7 @@ export default function RestaurantDashboard() {
                         }))
                       }
                     />
-                    <Input
+                    {/* <Input
                       value={editMenuForm.image}
                       placeholder="Item image URL"
                       onChange={(e) =>
@@ -392,7 +466,30 @@ export default function RestaurantDashboard() {
                           image: e.target.value,
                         }))
                       }
-                    />
+                    /> */}
+
+                    <div>
+                      <Label>Change Image</Label>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEditImageUpload}
+                        disabled={uploadingEdit}
+                      />
+                      {uploadingEdit && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Uploading...
+                        </p>
+                      )}
+                      {editMenuForm.image && (
+                        <img
+                          src={editMenuForm.image}
+                          alt="Preview"
+                          className="w-32 h-32 object-cover rounded-md mt-2"
+                        />
+                      )}
+                    </div>
+
                     <select
                       name="categoryId"
                       value={editMenuForm.categoryId}

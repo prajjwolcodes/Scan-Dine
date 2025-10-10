@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.js";
 import restaurantRoutes from "./routes/restaurantRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import menuItemsRoutes from "./routes/menuItemsRoutes.js";
+import checkoutRoutes from "./routes/checkoutRoute.js";
 import qrRoutes from "./routes/qrRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 
@@ -39,6 +40,7 @@ app.use("/api/category", categoryRoutes);
 app.use("/api/menu-items", menuItemsRoutes);
 app.use("/api/qr", qrRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/checkout", checkoutRoutes);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the API");

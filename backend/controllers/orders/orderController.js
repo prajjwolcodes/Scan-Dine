@@ -9,7 +9,6 @@ export const createOrder = async (req, res) => {
     const { restaurantId, tableNumber, items, customerName, customerPhone } =
       req.body;
 
-    // 1) Basic checks
     if (!restaurantId || !tableNumber) {
       return res
         .status(400)
@@ -17,32 +16,65 @@ export const createOrder = async (req, res) => {
     }
 
     const restaurant = await Restaurant.findById(restaurantId);
-    if (!restaurant)
+    if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
+    }
 
-    // 2) Build order lines & compute total
+    // 🔒 1. Check if the table is already booked in DB
+    const table = restaurant.tables.find(
+      (t) => t.tableNumber === Number(tableNumber)
+    );
+    if (!table) {
+      return res
+        .status(404)
+        .json({ message: `Table ${tableNumber} not available right now` });
+    }
+    if (table.isBooked) {
+      return res
+        .status(400)
+        .json({ message: `Table ${tableNumber} is already booked.` });
+    }
+
+    // 2. Check active order (extra safety)
+    const existingOrder = await Order.findOne({
+      restaurant: restaurant._id,
+      tableNumber,
+      status: { $in: ["pending", "accepted", "preparing"] },
+    });
+    if (existingOrder) {
+      return res
+        .status(400)
+        .json({ message: "This table already has an active order." });
+    }
+
+    // 3. Build order lines and total
     const { orderItems, total } = await buildOrderLines(restaurant._id, items);
 
-    // 3) Create order
+    // 4. Create new order
     const order = await Order.create({
       restaurant: restaurant._id,
       tableNumber,
       items: orderItems,
       totalAmount: total,
       status: "pending",
-      paymentStatus: "unpaid",
       customerName,
       customerPhone,
     });
 
-    // 4) Emit to kitchen (chefs joined this room)
+    // 5. Update restaurant table as booked
+    table.isBooked = true;
+    await restaurant.save();
+
+    // 6. Emit new order to kitchen
     io.to(`restaurant:${restaurant._id}`).emit("order:new", order);
 
-    // 5) Respond to customer
-    res
-      .status(201)
-      .json({ success: true, message: "Order created successfully", order });
+    res.status(201).json({
+      success: true,
+      message: "Order created successfully",
+      order,
+    });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -72,11 +104,13 @@ export const listAllOrders = async (req, res) => {
     const existingRestaurant = await Restaurant.findOne({
       _id: req.user.restaurant,
     });
-    if(!existingRestaurant) {
+    if (!existingRestaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
 
-    const orders = await Order.find({ restaurant: existingRestaurant._id }).sort({
+    const orders = await Order.find({
+      restaurant: existingRestaurant._id,
+    }).sort({
       createdAt: -1,
     });
     res.json({
@@ -92,22 +126,39 @@ export const listAllOrders = async (req, res) => {
 
 export const updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body; // accepted|preparing|ready|completed|cancelled
+    const { status, chefId } = req.body;
     if (!status) return res.status(400).json({ message: "Status is required" });
-    const restaurantId = req.user.restaurant;
 
+    const restaurantId = req.user.restaurant;
     const order = await Order.findOne({
       _id: req.params.id,
       restaurant: restaurantId,
     });
+
     if (!order) return res.status(404).json({ message: "Order not found" });
 
     order.status = status;
+    if (chefId) order.acceptedBy = chefId;
+
     await order.save();
 
-    // Emit updates
+    // 🟢 Emit order update
     io.to(`restaurant:${restaurantId}`).emit("order:update", order);
     io.to(`order:${order._id}`).emit("order:update", order);
+
+    // 🧹 If order completed or cancelled, mark table as available again
+    if (["completed", "cancelled"].includes(status)) {
+      const restaurant = await Restaurant.findById(restaurantId);
+      if (restaurant) {
+        const table = restaurant.tables.find(
+          (t) => t.tableNumber === order.tableNumber
+        );
+        if (table) {
+          table.isBooked = false;
+          await restaurant.save();
+        }
+      }
+    }
 
     res.json({
       success: true,

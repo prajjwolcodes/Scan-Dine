@@ -34,7 +34,9 @@ export const createRestaurant = async (req, res) => {
       openingTime,
       closingTime,
       owner: req.user._id,
+      tables: Array.from({ length: tableCount }, (_, i) => ({ tableNumber: i + 1, isBooked: false })),
     });
+
 
     // link owner with restaurant
     await User.findByIdAndUpdate(req.user._id, {

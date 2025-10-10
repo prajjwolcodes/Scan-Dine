@@ -21,22 +21,31 @@ const orderSchema = new mongoose.Schema({
     required: true,
   },
   tableNumber: { type: Number, required: true },
+  acceptedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null, // remains null until a chef accepts it
+  },
+
   items: { type: [orderItemSchema], validate: (v) => v.length > 0 },
   totalAmount: Number,
   status: {
     type: String,
-    enum: ["pending", "accepted", "preparing", "completed", "cancelled"],
+    enum: ["pending", "accepted", "completed", "cancelled"],
     default: "pending",
     index: true,
   },
-  paymentMethod: {
+  paymentStatus: {
     type: String,
-    enum: ["cash", "khalti", "esewa"],
-    default: "cash",
+    enum: ["UNPAID", "PAID"],
+    default: "UNPAID",
+  },
+  payment: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Payment",
   },
   customerName: { type: String, required: true },
   customerPhone: { type: String, required: true },
-  paymentStatus: { type: String, enum: ["unpaid", "paid"], default: "unpaid" },
   createdAt: { type: Date, default: Date.now },
 });
 

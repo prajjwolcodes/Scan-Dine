@@ -45,17 +45,20 @@ export default function SignupPage() {
         >
           <h1 className="text-xl font-bold text-center">Signup</h1>
           <Input
+            name="username"
             placeholder="Name"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
           />
           <Input
+            name="email"
             placeholder="Email"
             type="email"
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <Input
+            name="password"
             placeholder="Password"
             type="password"
             value={form.password}

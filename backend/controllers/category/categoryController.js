@@ -60,6 +60,7 @@ export const getCustomerCategories = async (req, res) => {
       success: true,
       message: "Categories fetched successfully",
       categories,
+      restaurant
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

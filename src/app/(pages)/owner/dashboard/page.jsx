@@ -64,6 +64,63 @@ export default function OwnerDashboard() {
     available: true,
     categoryId: "",
   });
+  const [uploading, setUploading] = useState(false);
+  const [uploadingEdit, setUploadingEdit] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_UPLOAD_PRESET);
+
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+      const data = await res.json();
+      if (data.secure_url) {
+        setMenuForm({ ...menuForm, image: data.secure_url });
+        toast.success("Image uploaded!");
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (err) {
+      toast.error("Image upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleEditImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingEdit(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_UPLOAD_PRESET);
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUD_NAME}/image/upload`,
+        { method: "POST", body: formData }
+      );
+      const data = await res.json();
+      if (data.secure_url) {
+        setEditMenuForm((f) => ({ ...f, image: data.secure_url }));
+        toast.success("Image updated!");
+      } else throw new Error();
+    } catch {
+      toast.error("Failed to upload new image");
+    } finally {
+      setUploadingEdit(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -307,6 +364,7 @@ export default function OwnerDashboard() {
                 </DialogHeader>
                 <form onSubmit={handleAddChef} className="space-y-4">
                   <Input
+                    name="username"
                     placeholder="Username"
                     type="text"
                     required
@@ -316,6 +374,7 @@ export default function OwnerDashboard() {
                     }
                   />
                   <Input
+                    name="email"
                     placeholder="Email"
                     type="email"
                     required
@@ -325,6 +384,7 @@ export default function OwnerDashboard() {
                     }
                   />
                   <Input
+                    name="password"
                     placeholder="Password"
                     type="password"
                     required
@@ -523,13 +583,25 @@ export default function OwnerDashboard() {
                     }
                     required
                   />
-                  <Input
-                    placeholder="Image URL"
-                    value={menuForm.image}
-                    onChange={(e) =>
-                      setMenuForm({ ...menuForm, image: e.target.value })
-                    }
-                  />
+                  <div className="space-y-2">
+                    <Label>Upload Image</Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading}
+                    />
+                    {uploading && (
+                      <p className="text-sm text-gray-500">Uploading...</p>
+                    )}
+                    {menuForm.image && (
+                      <img
+                        src={menuForm.image}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover rounded-md mt-2"
+                      />
+                    )}
+                  </div>
                   <select
                     value={menuForm.categoryId}
                     onChange={(e) =>
@@ -594,6 +666,28 @@ export default function OwnerDashboard() {
                         }
                         className="w-24"
                       />
+                      <div>
+                        <Label>Change Image</Label>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleEditImageUpload}
+                          disabled={uploadingEdit}
+                        />
+                        {uploadingEdit && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            Uploading...
+                          </p>
+                        )}
+                        {editMenuForm.image && (
+                          <img
+                            src={editMenuForm.image}
+                            alt="Preview"
+                            className="w-32 h-32 object-cover rounded-md mt-2"
+                          />
+                        )}
+                      </div>
+
                       <select
                         value={editMenuForm.categoryId}
                         onChange={(e) =>
@@ -625,6 +719,13 @@ export default function OwnerDashboard() {
                   ) : (
                     <>
                       <div>
+                        {item.image && (
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full h-10 w-10 object-cover rounded-md mb-2"
+                          />
+                        )}
                         <p className="font-semibold">
                           {item.name} - Rs {item.price}
                         </p>

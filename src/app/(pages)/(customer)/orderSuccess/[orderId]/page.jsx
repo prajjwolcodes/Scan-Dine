@@ -1,11 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import api from "@/lib/axios";
-import { io } from "socket.io-client";
+import PaymentOptions from "@/components/PaymentOptions";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import api from "@/lib/axios";
+import { CreditCard } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
+import { io } from "socket.io-client";
 
 let socket;
 
@@ -66,9 +77,9 @@ export default function OrderStatusPage() {
           className={`font-semibold ${
             order.status === "pending"
               ? "text-yellow-600"
-              : order.status === "preparing"
+              : order.status === "accepted"
               ? "text-blue-600"
-              : order.status === "ready"
+              : order.status === "completed"
               ? "text-green-600"
               : "text-gray-500"
           }`}
@@ -89,17 +100,57 @@ export default function OrderStatusPage() {
       <p className="font-semibold text-lg text-right">
         Total: Rs {order.totalAmount}
       </p>
+      <div className="flex items-center gap-4">
+        <div className="text-center">
+          <Button
+            onClick={() => navigator.clipboard.writeText(window.location.href)}
+          >
+            Copy Order Link
+          </Button>
+        </div>
+        <div className="text-center bg-blue-600 text-white">
+          <Button onClick={() => router.back()}>Go Back</Button>
+        </div>
 
-      <div className="text-center">
-        <Button
-          onClick={() => navigator.clipboard.writeText(window.location.href)}
-        >
-          Copy Order Link
-        </Button>
+        {order.status === "completed" &&
+          (order.paymentStatus === "UNPAID" ? (
+            <Dialog>
+              <form>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="bg-green-400 text-white">
+                    Pay Now
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center">
+                      <CreditCard className="mr-2 h-5 w-5" />
+                      Payment Method
+                    </DialogTitle>
+                  </DialogHeader>
+                  <PaymentOptions orderId={order._id} />
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit">Save changes</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </form>
+            </Dialog>
+          ) : (
+            <Button variant="outline" className="bg-green-600 text-white">
+              PAID
+            </Button>
+          ))}
       </div>
-      <div className="text-center">
-        <Button onClick={() => router.back()}>Go Back</Button>
-      </div>
+      {order.status === "completed" && (
+        <>
+          <p className="text-green-600 font-semibold text-center">
+            Your order is completed! Enjoy your meal 🍽️
+          </p>
+        </>
+      )}
     </div>
   );
 }
