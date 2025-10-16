@@ -7,26 +7,35 @@ import { useEffect, useState } from "react";
 export default function PublicRoute({ children, redirectTo = "/" }) {
   const router = useRouter();
   const { user, token } = useSelector((state) => state.auth);
+  const [hydrated, setHydrated] = useState(false);
 
-  const [loading, setLoading] = useState(true);
+  // Wait for Redux hydration
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   useEffect(() => {
-    // Wait for the Redux store to be hydrated
-    if (token === undefined || user === undefined) {
-      // Still initializing from localStorage, so wait
-      return;
-    }
+    if (!hydrated) return; // Wait until Redux is ready
 
     if (token && user) {
-      router.replace(redirectTo);
-    } else if (!token && !user) {
-      setLoading(false); // No user or token, stop loading
+      // If already logged in, redirect away from public pages
+      if (user.role === "owner") {
+        router.replace("/owner/dashboard");
+        return;
+      }
+      if (user.role === "chef") {
+        router.replace("/chef/dashboard");
+        return;
+      } else {
+        router.replace("/");
+      }
     }
-  }, [token, user, loading, router, redirectTo]);
+  }, [hydrated, token, user, router, redirectTo]);
 
-  if (loading || (token && user)) {
-    return <p>Loading...</p>;
+  if (!hydrated) {
+    return <></>;
   }
 
-  return <>{children}</>;
+  // If not logged in, allow access
+  return <>{!token && !user ? children : <></>}</>;
 }

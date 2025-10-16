@@ -23,8 +23,6 @@ export async function checkoutController(req, res) {
         FAILURE_URL
       );
 
-      console.log(paymentUrl);
-
       return res.json({
         data: {
           order,

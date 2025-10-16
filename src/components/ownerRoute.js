@@ -46,7 +46,7 @@ export default function OwnerRoute({ children }) {
     (!user?.hasRestaurant && pathname !== "/owner/restaurant-details") ||
     (user?.hasRestaurant && !user?.hasMenu && pathname !== "/owner/menu")
   ) {
-    return <div>Loading...</div>; // Return nothing while the redirect is in progress
+    return <></>; // Return nothing while the redirect is in progress
   }
 
   // If all checks pass and the current path is correct, render the children

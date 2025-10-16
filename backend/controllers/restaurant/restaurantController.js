@@ -34,9 +34,11 @@ export const createRestaurant = async (req, res) => {
       openingTime,
       closingTime,
       owner: req.user._id,
-      tables: Array.from({ length: tableCount }, (_, i) => ({ tableNumber: i + 1, isBooked: false })),
+      tables: Array.from({ length: tableCount }, (_, i) => ({
+        tableNumber: i + 1,
+        isBooked: false,
+      })),
     });
-
 
     // link owner with restaurant
     await User.findByIdAndUpdate(req.user._id, {
@@ -54,8 +56,14 @@ export const createRestaurant = async (req, res) => {
 };
 
 export const getMyRestaurant = async (req, res) => {
+  const { userId } = req.params;
+  if (req.user._id.toString() !== userId) {
+    return res
+      .status(403)
+      .json({ message: "You can only access your own restaurant" });
+  }
   try {
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
     if (!user.restaurant) {
       return res.status(404).json({ message: "No restaurant assigned" });

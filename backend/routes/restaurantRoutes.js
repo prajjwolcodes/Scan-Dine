@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 router.post("/", authMiddleware, createRestaurant);
-router.get("/", authMiddleware, getMyRestaurant);
+router.get("/:userId", authMiddleware, getMyRestaurant);
 router.put("/:id", authMiddleware, updateRestaurant);
 
 export default router;

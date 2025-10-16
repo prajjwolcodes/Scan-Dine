@@ -8,29 +8,33 @@ import { useEffect, useState } from "react";
 export default function ProtectedRoute({ children, allowedRoles }) {
   const router = useRouter();
   const { user, token } = useSelector((state) => state.auth);
-  const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // Wait for the Redux store to be hydrated
-    if (token === undefined || user === undefined) {
-      // Still initializing from localStorage, so wait
+    // This ensures Redux state is available after hydration
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return; // Wait for hydration
+
+    // If no token -> redirect to login
+    if (!token) {
+      router.replace("/auth/login");
       return;
     }
 
-    if (!token) {
-      router.replace("/auth/login");
-    } else if (!allowedRoles.includes(user?.role)) {
+    // If token exists but user role not allowed
+    if (user && !allowedRoles.includes(user.role)) {
       router.replace("/unauthorized");
-    } else {
-      setLoading(false); // Authentication check passed, stop loading
+      return;
     }
-  }, [user, token, router, allowedRoles]);
+  }, [hydrated, token, user, allowedRoles, router]);
 
-  if (loading) {
-    // Show a loading state or nothing while checking auth
-    return <div>Loading...</div>;
+  if (!hydrated || !token || !user) {
+    // Optional: replace with your <Loading /> component
+    return <></>;
   }
 
-  // Only render children if the authentication check passed
   return <>{children}</>;
 }

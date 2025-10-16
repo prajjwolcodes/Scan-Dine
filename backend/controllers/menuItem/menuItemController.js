@@ -28,6 +28,8 @@ export const addMenuItem = async (req, res) => {
       image,
     });
 
+    await menuItem.populate("category", "name");
+
     await User.findByIdAndUpdate(req.user._id, { hasMenu: true });
 
     res.status(201).json({

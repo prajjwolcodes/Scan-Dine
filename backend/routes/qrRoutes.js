@@ -4,6 +4,6 @@ import { generateRestaurantQR } from "../controllers/qr/qrController.js";
 
 const router = express.Router();
 
-router.post("/generate", authMiddleware, generateRestaurantQR);
+router.post("/generate/:userId", authMiddleware, generateRestaurantQR);
 
 export default router;
