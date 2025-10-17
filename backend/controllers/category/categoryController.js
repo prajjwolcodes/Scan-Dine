@@ -60,7 +60,7 @@ export const getCustomerCategories = async (req, res) => {
       success: true,
       message: "Categories fetched successfully",
       categories,
-      restaurant
+      restaurant,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -86,7 +86,7 @@ export const removeCategory = async (req, res) => {
         .status(403)
         .json({ message: "You are not authorized to remove this category" });
 
-    if (category.menuItems.length > 0) {
+    if (category.menuItems && category.menuItems.length > 0) {
       return res
         .status(400)
         .json({ message: "Cannot delete category with menu items" });

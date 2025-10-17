@@ -121,3 +121,20 @@ export const updateRestaurant = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const getAvailableTables = async (req, res) => {
+  const { restaurantId } = req.params;
+  console.log(restaurantId);
+  try {
+    const restaurant = await Restaurant.findById(restaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ message: "Restaurant not found" });
+    }
+    const availableTables = restaurant.tables.filter(
+      (table) => !table.isBooked
+    );
+    res.json({ success: true, availableTables });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

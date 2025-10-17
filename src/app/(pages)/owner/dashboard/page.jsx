@@ -124,7 +124,7 @@ const RestaurantEditModal = memo(
               </div>
 
               <div className="lg:col-span-2 flex justify-end gap-2 mt-2">
-                <Button variant="outline" onClick={onClose}>
+                <Button variant="outline" onClick={onClose} type="button">
                   Cancel
                 </Button>
                 <Button onClick={onSave} disabled={savingInfo}>
@@ -147,7 +147,6 @@ export default function OwnerDashboard() {
   const dispatch = useDispatch();
 
   // original states (kept)
-  const [generatingQr, setGeneratingQr] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({
     name: "",
@@ -852,13 +851,7 @@ export default function OwnerDashboard() {
           <div className="text-gray-500">No categories found.</div>
         ) : (
           filteredCategories.map((c, index) => (
-            <motion.div
-              key={c._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="border rounded-md p-4"
-            >
+            <motion.div key={c._id} className="border rounded-md p-4">
               <div className="flex justify-between items-start gap-4">
                 <div>
                   <h3 className="font-semibold">{c.name}</h3>
@@ -1229,6 +1222,7 @@ export default function OwnerDashboard() {
                 <div className="flex justify-end gap-2 mt-3 ">
                   <Button
                     variant="outline"
+                    type="button"
                     onClick={() => setShowAddCategory(false)}
                     className="cursor-pointer"
                   >
@@ -1286,6 +1280,7 @@ export default function OwnerDashboard() {
                 <div className="flex justify-end gap-2 mt-3">
                   <Button
                     className="cursor-pointer"
+                    type="button"
                     variant="outline"
                     onClick={() => {
                       setShowEditCategory(false);
@@ -1413,7 +1408,11 @@ export default function OwnerDashboard() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" className="cursor-pointer">
+                  <Button
+                    disabled={uploading}
+                    type="submit"
+                    className="cursor-pointer"
+                  >
                     Create
                   </Button>
                 </div>
@@ -1520,6 +1519,7 @@ export default function OwnerDashboard() {
                 <div className="sm:col-span-2 flex justify-end gap-2 mt-2">
                   <Button
                     variant="outline"
+                    type="button"
                     onClick={() => {
                       setShowEditItem(false);
                       setEditingMenu(null);
@@ -1589,6 +1589,7 @@ export default function OwnerDashboard() {
                 <div className="flex justify-end gap-2 mt-2">
                   <Button
                     className="cursor-pointer"
+                    type="button"
                     variant="outline"
                     onClick={() => setShowAddChef(false)}
                   >

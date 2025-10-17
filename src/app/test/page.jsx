@@ -1,53 +1,108 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { addToCart } from "@/app/store/cartSlice";
+import PaymentOptions from "@/components/PaymentOptions";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import api from "@/lib/axios";
+import { CreditCard } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import CartDrawer from "@/components/CartDrawer";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { fetchRestaurantMenu } from "@/app/store/menuSlice";
+import { io } from "socket.io-client";
 
-export default function RestaurantMenuPage() {
-  const { restaurantId } = useParams();
+let socket;
+
+export default function OrderStatusPage() {
+  const { orderId } = useParams();
   const router = useRouter();
-  const dispatch = useDispatch();
-  const { restaurant, categories, menuItems, status } = useSelector(
-    (s) => s.menu
-  );
-  const open = useSelector((s) => s.cart.open);
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const [activeCat, setActiveCat] = useState(null);
-  const [guestOrder, setGuestOrder] = useState(null); // stores orderId for button
-  const [remainingTime, setRemainingTime] = useState(0); // countdown for completed orders
-  const containerRef = useRef(null);
-  const catRefs = useRef({}); // categoryId -> DOM node
+  // ✅ timer state
+  const [remainingTime, setRemainingTime] = useState(0);
 
-  // Load guest order from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem("guestOrder");
+    const fetchOrder = async () => {
+      try {
+        const res = await api.get(`/orders/order/${orderId}`);
+        setOrder(res.data.order);
+        setLoading(false);
+
+        // store guest order in localStorage without timer yet
+        localStorage.setItem(
+          "guestOrder",
+          JSON.stringify({
+            id: res.data.order._id,
+            status: res.data.order.status,
+          })
+        );
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Failed to fetch order");
+      }
+    };
+
+    fetchOrder();
+
+    // Connect to socket
+    socket = io("http://localhost:8000");
+
+    socket.emit("joinOrder", { orderId });
+
+    socket.on("order:update", (updatedOrder) => {
+      toast.success(`Order status updated to ${updatedOrder.status}`);
+      if (updatedOrder._id === orderId) {
+        setOrder(updatedOrder);
+
+        // ✅ start timer if completed
+        if (
+          updatedOrder.status === "completed" &&
+          !localStorage.getItem("guestOrderCompletedAt")
+        ) {
+          const completedAt = Date.now();
+          localStorage.setItem(
+            "guestOrderCompletedAt",
+            JSON.stringify({ id: orderId, completedAt })
+          );
+
+          // start countdown
+          setRemainingTime(15 * 60); // 15 minutes in seconds
+        }
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [orderId]);
+
+  // ✅ Countdown effect
+  useEffect(() => {
+    const saved = localStorage.getItem("guestOrderCompletedAt");
     if (!saved) return;
 
-    const order = JSON.parse(saved);
-    setGuestOrder(order.id);
+    const { completedAt } = JSON.parse(saved);
+    const now = Date.now();
+    const elapsed = Math.floor((now - completedAt) / 1000);
 
-    // if completed, start 15-minute timer
-    if (order.status === "completed") {
-      const now = Date.now();
-      const start = order.completedAt || now;
-      localStorage.setItem(
-        "guestOrder",
-        JSON.stringify({ ...order, completedAt: start })
-      );
-
-      // set remaining time
-      const elapsed = Math.floor((now - start) / 1000);
-      const initial = Math.max(15 * 60 - elapsed, 0);
-      setRemainingTime(initial);
+    if (elapsed < 15 * 60) {
+      setRemainingTime(15 * 60 - elapsed);
+    } else {
+      // remove localStorage if more than 15 mins
+      localStorage.removeItem("guestOrder");
+      localStorage.removeItem("guestOrderCompletedAt");
+      setRemainingTime(0);
     }
   }, []);
 
-  // countdown effect
+  // timer countdown
   useEffect(() => {
     if (remainingTime <= 0) return;
     const interval = setInterval(() => {
@@ -55,7 +110,7 @@ export default function RestaurantMenuPage() {
         if (prev <= 1) {
           clearInterval(interval);
           localStorage.removeItem("guestOrder");
-          setGuestOrder(null);
+          localStorage.removeItem("guestOrderCompletedAt");
           return 0;
         }
         return prev - 1;
@@ -64,181 +119,111 @@ export default function RestaurantMenuPage() {
     return () => clearInterval(interval);
   }, [remainingTime]);
 
-  // Fetch menu
-  useEffect(() => {
-    if (restaurantId) dispatch(fetchRestaurantMenu(restaurantId));
-  }, [restaurantId, dispatch]);
-
-  useEffect(() => {
-    if (categories.length) setActiveCat(categories[0]._id);
-  }, [categories]);
-
-  // group items by category
-  const grouped = useMemo(() => {
-    const map = {};
-    categories.forEach((c) => (map[c._id] = []));
-    menuItems.forEach((m) => {
-      const cid = m.category?._id || m.category;
-      if (!map[cid]) map[cid] = [];
-      map[cid].push(m);
-    });
-    return map;
-  }, [categories, menuItems]);
-
-  const onAdd = (item) => {
-    if (!item.available) return toast.error("Item not available");
-    dispatch(
-      addToCart({
-        _id: item._id,
-        name: item.name,
-        price: item.price,
-        image: item.image,
-      })
-    );
-    toast.success("Added to cart");
-  };
-
-  const scrollToCat = (id) => {
-    const node = catRefs.current[id];
-    if (node && containerRef.current) {
-      const top = node.offsetTop - containerRef.current.offsetTop - 8;
-      containerRef.current.scrollTo({ top, behavior: "smooth" });
-    }
-  };
-
-  const onScroll = () => {
-    const scrollTop = containerRef.current?.scrollTop || 0;
-    let last = null;
-    for (const c of categories) {
-      const n = catRefs.current[c._id];
-      if (!n) continue;
-      if (n.offsetTop - containerRef.current.offsetTop - 40 <= scrollTop)
-        last = c._id;
-    }
-    if (last) setActiveCat(last);
-  };
-
-  if (status === "loading") return <div className="p-6">Loading menu…</div>;
-  if (status === "failed")
-    return <div className="p-6 text-red-600">Failed to load menu.</div>;
-
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
+  if (loading) return <p className="p-6">Loading order...</p>;
+  if (!order) return <p className="p-6 text-red-500">Order not found</p>;
+
   return (
-    <div
-      className={`min-h-screen  ${
-        open ? "bg-black/40 bg-opacity-80" : "bg-gray-50"
-      }`}
-    >
-      {/* Header */}
-      <header className="sticky top-0 z-20 shadow px-4 py-3 flex items-center gap-3">
-        <img
-          src={restaurant?.logo || "/placeholder.png"}
-          alt={restaurant?.name || "Restaurant"}
-          className="w-12 h-12 rounded-full object-cover"
-        />
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold">
-            {restaurant?.name || "Menu"}
-          </h1>
-          <p className="text-sm text-gray-500">Tap items to add to cart</p>
-        </div>
+    <div className="max-w-md mx-auto mt-10 bg-white p-6 rounded-lg shadow-lg space-y-4">
+      <h2 className="text-2xl font-bold text-center">Order Status</h2>
+      <p className="text-gray-700">
+        Order ID: <span className="font-mono">{order._id}</span>
+      </p>
+      <p className="text-gray-700">Table: {order.tableNumber}</p>
+      <p className="text-gray-700">Customer: {order.customerName}</p>
+      <p className="text-gray-700">
+        Status:{" "}
+        <span
+          className={`font-semibold ${
+            order.status === "pending"
+              ? "text-yellow-600"
+              : order.status === "accepted"
+              ? "text-blue-600"
+              : order.status === "completed"
+              ? "text-green-600"
+              : "text-gray-500"
+          }`}
+        >
+          {order.status.toUpperCase()}
+        </span>
+      </p>
 
-        {/* View Your Order Button */}
-        {guestOrder && (
-          <button
-            onClick={() => router.push(`/orderSuccess/${guestOrder}`)}
-            className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm flex flex-col items-center"
+      {/* ✅ Countdown Timer */}
+      {order.status === "completed" && remainingTime > 0 && (
+        <p className="text-center text-green-600 font-semibold">
+          Order will be cleared from your session in:{" "}
+          {formatTime(remainingTime)}
+        </p>
+      )}
+
+      <h3 className="font-semibold mt-4">Items</h3>
+      <ul className="list-disc pl-5 space-y-1">
+        {order.items.map((item, index) => (
+          <li key={index}>
+            {item.name} x {item.quantity} = Rs {item.unitPrice * item.quantity}
+          </li>
+        ))}
+      </ul>
+
+      <p className="font-semibold text-lg text-right">
+        Total: Rs {order.totalAmount}
+      </p>
+
+      <div className="flex items-center gap-4">
+        <div className="text-center">
+          <Button
+            onClick={() => navigator.clipboard.writeText(window.location.href)}
           >
-            <span>View Your Order</span>
-          </button>
-        )}
-      </header>
-
-      {/* Category Tabs */}
-      <div className="sticky top-[72px] z-10 border-b">
-        <div className="overflow-x-auto py-2 px-3 flex gap-3">
-          {categories.map((cat) => (
-            <button
-              key={cat._id}
-              onClick={() => {
-                setActiveCat(cat._id);
-                scrollToCat(cat._id);
-              }}
-              className={`px-3 py-1 rounded-full whitespace-nowrap ${
-                activeCat === cat._id
-                  ? "bg-black text-white"
-                  : "bg-gray-100 text-gray-700"
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+            Copy Order Link
+          </Button>
         </div>
+        <div className="text-center bg-blue-600 text-white">
+          <Button onClick={() => router.back()}>Go Back</Button>
+        </div>
+
+        {order.status === "completed" &&
+          (order.paymentStatus === "UNPAID" ? (
+            <Dialog>
+              <form>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="bg-green-400 text-white">
+                    Pay Now
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-xl">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center">
+                      <CreditCard className="mr-2 h-5 w-5" />
+                      Payment Method
+                    </DialogTitle>
+                  </DialogHeader>
+                  <PaymentOptions orderId={order._id} />
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button type="submit">Save changes</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </form>
+            </Dialog>
+          ) : (
+            <Button variant="outline" className="bg-green-600 text-white">
+              PAID
+            </Button>
+          ))}
       </div>
 
-      {/* Menu list */}
-      <main
-        ref={containerRef}
-        onScroll={onScroll}
-        className="p-4 space-y-8 overflow-auto h-[calc(100vh-160px)]"
-      >
-        {categories.map((cat) => (
-          <section
-            key={cat._id}
-            ref={(el) => (catRefs.current[cat._id] = el)}
-            id={`cat-${cat._id}`}
-          >
-            <h2 className="text-xl font-semibold mb-3">{cat.name}</h2>
-            <p className="text-sm text-gray-500 mb-3">{cat.description}</p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {(grouped[cat._id] || []).map((item) => (
-                <div
-                  key={item._id}
-                  className="rounded-2xl p-4 flex gap-4 items-center shadow"
-                >
-                  <div className="flex-1">
-                    <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-sm text-gray-500">{item.description}</p>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="font-semibold">Rs {item.price}</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => onAdd(item)}
-                          className="bg-green-600 text-white px-3 py-1 rounded-full"
-                        >
-                          Add
-                        </button>
-                        {!item.available && (
-                          <span className="text-xs text-red-600">
-                            Not available
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {item.image && (
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-20 h-20 object-cover rounded-md"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
-      </main>
-
-      {/* Cart Drawer */}
-      <CartDrawer restaurantId={restaurantId} />
+      {order.status === "completed" && (
+        <p className="text-green-600 font-semibold text-center">
+          Your order is completed! Enjoy your meal 🍽️
+        </p>
+      )}
     </div>
   );
 }

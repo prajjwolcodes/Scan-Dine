@@ -9,6 +9,8 @@ export const createOrder = async (req, res) => {
     const { restaurantId, tableNumber, items, customerName, customerPhone } =
       req.body;
 
+    console.log(restaurantId, tableNumber, items, customerName, customerPhone);
+
     if (!restaurantId || !tableNumber) {
       return res
         .status(400)
@@ -209,7 +211,7 @@ export const getOrderDetails = async (req, res) => {
 
     const order = await Order.findOne({
       _id: orderId,
-    });
+    }).populate("restaurant", "name address phone email");
 
     if (!order) return res.status(404).json({ message: "Order not found" });
 

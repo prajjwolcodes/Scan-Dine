@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { Header } from "../../components/Header";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * RestaurantMenuPage (improved UI/UX)
@@ -43,6 +44,7 @@ export default function RestaurantMenuPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCat, setActiveCat] = useState("all");
+  const [restaurant, setRestaurant] = useState(storeRestaurant || null);
   const [query, setQuery] = useState("");
   const [availableOnly, setAvailableOnly] = useState(false);
   const [view, setView] = useState("grid"); // or 'list'
@@ -54,7 +56,6 @@ export default function RestaurantMenuPage() {
   const tabsRef = useRef(null);
 
   // Prefer restaurant from store (you said you dispatch restaurant details elsewhere)
-  const restaurant = storeRestaurant; // may be undefined if not loaded
 
   // Fetch categories and menu items for customer view & set isClient
   useEffect(() => {
@@ -72,6 +73,11 @@ export default function RestaurantMenuPage() {
         if (!mounted) return;
         const cats = catRes.data.categories || [];
         const its = itemRes.data.menuItems || [];
+        const rest = catRes.data.restaurant || null;
+
+        if (rest) {
+          setRestaurant(rest);
+        }
 
         // Add synthetic "All" tab
         const withAll = [{ _id: "all", name: "All", description: "" }, ...cats];
@@ -212,14 +218,8 @@ export default function RestaurantMenuPage() {
   /* ---------------- Presentational subcomponents ---------------- */
 
   const MenuItemCardGrid = ({ item }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-      className="bg-white rounded-2xl p-4 flex flex-col shadow-sm"
-    >
-      <div className="relative w-full h-44 rounded-lg overflow-hidden bg-gray-50">
+    <div className="w-full bg-white rounded-2xl p-4 flex flex-col shadow-sm">
+      <div className="relative w-full h-48 rounded-lg overflow-hidden bg-gray-50">
         {item.image ? (
           <img
             src={item.image}
@@ -227,7 +227,7 @@ export default function RestaurantMenuPage() {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300">
+          <div className="w-full h-fullflex items-center justify-center text-gray-300">
             No image
           </div>
         )}
@@ -248,11 +248,17 @@ export default function RestaurantMenuPage() {
         </p>
 
         <div className="mt-4 flex items-center justify-between">
+          <div className="flex-1">
+            <Badge className="px-4 py-1 text-xs rounded-3xl bg-[#f0f0f0] text-gray-800">
+              {item.category?.name || "Uncategorized"}
+            </Badge>
+          </div>
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => onAdd(item)}
               disabled={!item.available || addingItemId === item._id}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition inline-flex items-center gap-2 ${
+              className={`px-8 py-2 rounded-full text-sm font-medium transition inline-flex items-center gap-2 ${
                 item.available
                   ? "bg-black text-white"
                   : "bg-gray-200 text-gray-500 cursor-not-allowed"
@@ -268,29 +274,13 @@ export default function RestaurantMenuPage() {
               )}
             </button>
           </div>
-
-          <button
-            onClick={() => {
-              // quick view: scroll to top of card and open a small details modal in future (placeholder)
-              toast.info(item.description || "No extra details");
-            }}
-            className="text-xs text-gray-500"
-          >
-            Details
-          </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 
   const MenuItemCardList = ({ item }) => (
-    <motion.div
-      initial={{ opacity: 0, x: 10 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-      className="flex flex-col gap-3"
-    >
+    <motion.div className="flex flex-col gap-1">
       <div
         key={item._id}
         className={`flex items-center bg-white border rounded-xl p-3 shadow-sm hover:shadow-md transition ${
@@ -302,37 +292,40 @@ export default function RestaurantMenuPage() {
           alt={item.name}
           className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
         />
-        <div className="ml-4 flex-1 min-w-0">
-          <h3 className="font-medium text-gray-800 truncate">{item.name}</h3>
-          <p className="text-sm text-gray-500 line-clamp-2">
+        <div className="ml-4 flex-1 flex-col gap-1 min-w-0 ">
+          <div className="flex justify-between items-center">
+            <h3 className="font-medium text-gray-800 truncate">{item.name}</h3>
+            <p className="mr-2 text-base font-semibold text-gray-900">
+              Rs. {item.price}
+            </p>
+          </div>
+          <p className="text-[13px] text-gray-500 line-clamp-2">
             {item.description}
           </p>
           <div className="flex justify-between items-end mt-1">
-            <p className="text-xs text-gray-500">
-              Category:{" "}
-              <span className="font-medium">
-                {item.category?.name || "N/A"}
-              </span>
-            </p>
-            <p className="text-base font-semibold text-gray-900">
-              Rs. {item.price}
-            </p>
+            <Badge className="px-3 py-1 -ml-2 text-xs rounded-2xl bg-[#f0f0f0] text-gray-800">
+              {item.category?.name || "Uncategorized"}
+            </Badge>
+            <button
+              onClick={() => onAdd(item)}
+              disabled={!item.available || addingItemId === item._id}
+              className={`ml-4 px-4 py-1 rounded-full text-sm font-medium transition flex-shrink-0 ${
+                item.available
+                  ? "bg-black text-white"
+                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
+              }`}
+              aria-label={`Add ${item.name} to cart`}
+            >
+              {addingItemId === item._id ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                "Add"
+              )}
+            </button>
           </div>
         </div>
 
         {/* List view Add Button */}
-        <button
-          onClick={() => onAdd(item)}
-          disabled={!item.available || addingItemId === item._id}
-          className={`ml-4 px-3 py-1 rounded-full text-sm font-medium transition flex-shrink-0 ${
-            item.available
-              ? "bg-black text-white"
-              : "bg-gray-200 text-gray-500 cursor-not-allowed"
-          }`}
-          aria-label={`Add ${item.name} to cart`}
-        >
-          {addingItemId === item._id ? <Check className="w-4 h-4" /> : "Add"}
-        </button>
       </div>
     </motion.div>
   );
@@ -368,6 +361,7 @@ export default function RestaurantMenuPage() {
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
+            <SkeletonCard />
           </div>
         ) : (
           <>
@@ -383,6 +377,9 @@ export default function RestaurantMenuPage() {
                 .map((cat) => {
                   // In "All" view, show all categories and apply search/availability filtering to their lists
                   // In single category view, only show that category.
+
+                  if (cat._id === "all") return null;
+
                   const listForCat = (grouped[cat._id] || []).filter((it) => {
                     if (availableOnly && !it.available) return false;
                     if (!query) return true;
@@ -400,10 +397,10 @@ export default function RestaurantMenuPage() {
                   if (!shouldRenderSection) return null;
 
                   // Don't render "All" section in single-category view, nor empty categories in "All" view
-                  if (!isAllView && cat._id === "all") return null;
+                  // if (!isAllView && cat._id === "all") return null;
 
                   // In "All" view, skip categories with no items after filtering
-                  if (isAllView && listForCat.length === 0) return null;
+                  if (listForCat.length === 0) return null;
 
                   return (
                     <section
@@ -411,22 +408,24 @@ export default function RestaurantMenuPage() {
                       ref={(el) => (sectionRefs.current[cat._id] = el)}
                       id={`section-${cat._id}`}
                     >
-                      <div className="flex flex-col mb-3">
-                        <h2 className="text-xl font-semibold">{cat.name}</h2>
-                        {cat.description && (
-                          <p className="text-sm text-gray-500">
-                            {cat.description}
-                          </p>
-                        )}
-                      </div>
+                      {activeCat === cat._id && (
+                        <div className="flex flex-col mb-3">
+                          <h2 className="text-xl font-semibold">{cat.name}</h2>
+                          {cat.description && (
+                            <p className="text-sm text-gray-500">
+                              {cat.description}
+                            </p>
+                          )}
+                        </div>
+                      )}
 
                       {/* Display content based on view type */}
                       <AnimatePresence>
                         <div
                           className={
                             view === "grid"
-                              ? "grid grid-cols-1 sm:grid-cols-2 gap-4"
-                              : "space-y-3"
+                              ? "w-full grid grid-cols-1 sm:grid-cols-2 gap-2"
+                              : "space-y-1"
                           }
                         >
                           {listForCat.length === 0 ? (

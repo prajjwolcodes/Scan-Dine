@@ -1,136 +1,218 @@
-// ====================================================================
-// NEW: Extracted Header component
-// ====================================================================
-import { motion } from "framer-motion";
+"use client";
+
+import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search as SearchIcon, Grid, List } from "lucide-react";
+import { Search as SearchIcon, Grid, List, User } from "lucide-react";
 import Image from "next/image";
+import { useState, useRef, useEffect } from "react";
 
 export const Header = ({
   restaurant,
-  searchOpen,
-  setSearchOpen,
   query,
   setQuery,
-  inputRef,
   categories,
   activeCat,
   handleTabClick,
   view,
   setView,
-  tabsRef,
-}) => (
-  <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b">
-    <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-      <Image
-        src={restaurant?.logo || "/logo.png"}
-        alt={restaurant?.name || "Restaurant"}
-        className="w-12 h-12 rounded-full object-cover border"
-        width={48}
-        height={48}
-      />
-      <div className="flex-1">
-        <h1 className="text-lg font-semibold">
-          {restaurant?.name || "Restaurant Menu"}
-        </h1>
-        <p className="text-xs text-gray-500">{restaurant?.address || ""}</p>
-      </div>
+}) => {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const [hasGuestOrder, setHasGuestOrder] = useState(false); // 👈 new state
+  const inputRef = useRef(null);
+  const searchRef = useRef(null);
+  const userRef = useRef(null);
+  const tabsRef = useRef(null);
 
-      {/* ... (Hidden sm:flex block) ... */}
-      <div className="hidden sm:flex flex-col items-end">
-        <div className="text-sm font-medium">
-          {restaurant?.tableCount ? `${restaurant.tableCount} tables` : ""}
+  // ✅ Detect click outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        !searchRef.current?.contains(e.target) &&
+        !userRef.current?.contains(e.target)
+      ) {
+        setSearchOpen(false);
+        setUserOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // ✅ Check for active guestOrder in localStorage
+  useEffect(() => {
+    const checkGuestOrder = () => {
+      const guestOrder = localStorage.getItem("guestOrder");
+      const completed = localStorage.getItem("guestOrderCompletedAt");
+
+      if (guestOrder && completed) {
+        const { completedAt } = JSON.parse(completed);
+        const elapsed = (Date.now() - completedAt) / 1000;
+        if (elapsed < 15 * 60) {
+          setHasGuestOrder(true);
+        } else {
+          // auto cleanup if expired
+          localStorage.removeItem("guestOrder");
+          localStorage.removeItem("guestOrderCompletedAt");
+          setHasGuestOrder(false);
+        }
+      } else {
+        setHasGuestOrder(false);
+      }
+    };
+
+    // Run once on mount
+    checkGuestOrder();
+
+    // 👇 Recheck every 10 seconds (in case of expiration)
+    const interval = setInterval(checkGuestOrder, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b">
+      <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3 relative">
+        {/* Logo */}
+        <Image
+          src={restaurant?.logo || "/logo.png"}
+          alt={restaurant?.name || "Restaurant"}
+          className="w-12 h-12 rounded-full object-cover border"
+          width={48}
+          height={48}
+        />
+
+        {/* Name + Address */}
+        <div className="flex-1">
+          <h1 className="text-lg font-semibold">
+            {restaurant?.name || "Restaurant Menu"}
+          </h1>
+          <p className="text-xs text-gray-500">{restaurant?.address || ""}</p>
         </div>
-        <div className="text-xs text-gray-500">
-          {restaurant?.openingTime
-            ? `${restaurant.openingTime} - ${restaurant.closingTime}`
-            : ""}
-        </div>
-      </div>
 
-      {/* Search */}
-      <div className="flex items-center">
-        <motion.div
-          animate={{
-            width: searchOpen ? 180 : 0,
-            opacity: searchOpen ? 1 : 0,
-          }}
-          transition={{ duration: 0.3 }}
-          className="overflow-hidden"
-        >
-          <Input
-            ref={inputRef}
-            type="text"
-            placeholder="Search..."
-            // ✅ CORRECTED: Use 'query' state directly
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="h-9 text-sm"
-          />
-        </motion.div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSearchOpen(!searchOpen)}
-          className="ml-2"
-        >
-          <SearchIcon className="w-5 h-5" />
-        </Button>
-      </div>
-    </div>
+        {/* Icons */}
+        <div className="flex items-center gap-2 relative">
+          {/* Search Icon */}
+          <div ref={searchRef} className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSearchOpen(!searchOpen);
+                setUserOpen(false);
+              }}
+            >
+              <SearchIcon className="w-7 h-7 text-gray-600" />
+            </Button>
 
-    {/* Tabs + view toggle */}
-    <div className="border-t">
-      <div className="max-w-3xl mx-auto px-4 py-3 flex gap-3 items-center">
-        {/* Tabs */}
-        <div
-          ref={tabsRef}
-          className="flex gap-2 overflow-x-auto no-scrollbar py-1 flex-1"
-        >
-          {categories.map((cat) => {
-            const isActive = activeCat === cat._id;
-            return (
-              <button
-                key={cat._id}
-                id={`tab-${cat._id}`}
-                onClick={() => handleTabClick(cat._id)}
-                className={`px-3 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition ${
-                  isActive
-                    ? "bg-black text-white shadow-sm"
-                    : "bg-gray-100 text-gray-800"
-                }`}
+            {/* Floating Search Box */}
+            <AnimatePresence>
+              {searchOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute right-0 top-10 bg-white border shadow-md rounded-lg p-2"
+                >
+                  <Input
+                    ref={inputRef}
+                    type="text"
+                    placeholder="Search..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="w-56 h-9 text-sm"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* ✅ Show User Icon only when guestOrder exists */}
+          {hasGuestOrder && (
+            <div ref={userRef} className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setUserOpen(!userOpen);
+                  setSearchOpen(false);
+                }}
               >
-                {cat.name}
-              </button>
-            );
-          })}
-        </div>
+                <User className="w-5 h-5 text-gray-600" />
+              </Button>
 
-        {/* View Toggle */}
-        <div className="flex bg-gray-100 rounded-lg p-1 shrink-0">
-          <Button
-            variant={view === "grid" ? "default" : "ghost"}
-            size="icon"
-            className="rounded-md"
-            onClick={() => setView("grid")}
-          >
-            <Grid className="w-4 h-4" />
-          </Button>
-          <Button
-            variant={view === "list" ? "default" : "ghost"}
-            size="icon"
-            className="rounded-md"
-            onClick={() => setView("list")}
-          >
-            <List className="w-4 h-4" />
-          </Button>
+              {/* Dropdown */}
+              <AnimatePresence>
+                {userOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 top-10 bg-white border shadow-md rounded-lg w-40 py-2"
+                  >
+                    <button
+                      onClick={() =>
+                        (window.location.href = `/order-status/${
+                          JSON.parse(localStorage.getItem("guestOrder"))?.id
+                        }`)
+                      }
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      View your order
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  </header>
-);
 
-// ====================================================================
-// END Header component
-// ====================================================================
+      {/* Tabs + View Toggle remain same */}
+      <div className="border-t">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex gap-3 items-center">
+          <div
+            ref={tabsRef}
+            className="flex gap-2 overflow-x-auto no-scrollbar py-1 flex-1"
+          >
+            {categories.map((cat) => {
+              const isActive = activeCat === cat._id;
+              return (
+                <button
+                  key={cat._id}
+                  onClick={() => handleTabClick(cat._id)}
+                  className={`px-3 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition ${
+                    isActive
+                      ? "bg-black text-white shadow-sm"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex bg-gray-100 rounded-lg p-1 shrink-0">
+            <Button
+              variant={view === "grid" ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setView("grid")}
+            >
+              <Grid className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={view === "list" ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setView("list")}
+            >
+              <List className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
