@@ -17,6 +17,12 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import api from "@/lib/axios"; // Assuming this is your Axios instance
+import {
+  saveGuestOrder,
+  getGuestOrder,
+  removeGuestOrder,
+  cleanupExpiredGuestOrder,
+} from "@/lib/guestOrder";
 
 export default function CartDrawer({ restaurantId }) {
   const dispatch = useDispatch();
@@ -30,6 +36,8 @@ export default function CartDrawer({ restaurantId }) {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [isClient, setIsClient] = useState(false);
+  const [activeGuest, setActiveGuest] = useState(null); // current active guest order info
+  const [myTableNumber, setMyTableNumber] = useState(null); // table from active order
 
   const openDrawer = () => dispatch(openCart());
   const closeDrawer = () => dispatch(closeCart());
@@ -49,13 +57,53 @@ export default function CartDrawer({ restaurantId }) {
     if (restaurantId) fetchTables();
   }, [restaurantId]);
 
+  // Keep user's active order table visible and pre-filled + autofill name/phone
+  useEffect(() => {
+    const syncActive = async () => {
+      try {
+        cleanupExpiredGuestOrder();
+        const existing = getGuestOrder();
+        const isActive =
+          existing &&
+          existing.id &&
+          existing.restaurantId === restaurantId &&
+          ["pending", "accepted"].includes(existing.status);
+        if (isActive) {
+          setActiveGuest(existing);
+          // Fetch order details to get table and customer info
+          const res = await api.get(`/orders/order/${existing.id}`);
+          const ord = res?.data?.order;
+          if (ord) {
+            if (ord.tableNumber) {
+              setMyTableNumber(ord.tableNumber);
+              setTableNumber((prev) => (prev ? prev : String(ord.tableNumber)));
+            }
+            if (ord.customerName)
+              setCustomerName((prev) => prev || ord.customerName);
+            if (ord.customerPhone)
+              setCustomerPhone((prev) => prev || ord.customerPhone);
+          }
+        } else {
+          setActiveGuest(null);
+          setMyTableNumber(null);
+        }
+      } catch (e) {
+        console.error("Failed to sync active order details:", e);
+      }
+    };
+
+    syncActive();
+    const onStorage = (e) => {
+      if (e.key === "guestOrder" || e.key === "guestOrderCompletedAt") {
+        syncActive();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [restaurantId]);
+
   const handlePlaceOrder = async () => {
     setLoading(true);
-    if (!tableNumber) {
-      toast.error("Please select your table number");
-      setLoading(false);
-      return;
-    }
     if (cart.items.length === 0) {
       toast.error("Cart is empty");
       setLoading(false);
@@ -63,30 +111,63 @@ export default function CartDrawer({ restaurantId }) {
     }
 
     try {
-      const res = await dispatch(
-        placeOrder({
-          restaurantId,
-          tableNumber: Number(tableNumber.split(" ")[1].trim()),
-          customerName,
-          customerPhone,
-        })
-      );
+      if (activeGuest) {
+        // Append items to existing order
+        const payloadItems = cart.items.map((i) => ({
+          menuItemId: i._id,
+          quantity: i.qty,
+        }));
+        const res = await api.patch(`/orders/${activeGuest.id}/add-items`, {
+          items: payloadItems,
+        });
 
-      if (res.meta.requestStatus === "fulfilled") {
-        dispatch(clearCart());
-        const orderId = res.payload.order._id;
+        if (res.status === 200 || res.status === 201) {
+          dispatch(clearCart());
+          const updated = res.data.order;
+          saveGuestOrder({
+            id: updated._id,
+            restaurantId,
+            status: updated.status,
+          });
+          toast.success("Added to your existing order.");
+          closeDrawer();
+          router.push(`/orderSuccess/${updated._id}`);
+        } else {
+          toast.error(res.data?.message || "Failed to add to existing order.");
+        }
+      } else {
+        // Creating a new order requires a table number
+        const tn = Number(tableNumber);
+        if (!tn || Number.isNaN(tn)) {
+          toast.error("Please select your table number");
+          setLoading(false);
+          return;
+        }
 
-        const orderData = {
-          id: orderId,
-          status: res.payload.order.status,
-          timestamp: Date.now(),
-        };
-        localStorage.setItem("guestOrder", JSON.stringify(orderData));
+        const res = await dispatch(
+          placeOrder({
+            restaurantId,
+            tableNumber: tn,
+            customerName,
+            customerPhone,
+          })
+        );
 
-        toast.success("Order placed successfully!");
-        closeDrawer();
-        router.push(`/orderSuccess/${orderId}`);
-      } else toast.error(res.payload || "Failed to place order.");
+        if (res.meta.requestStatus === "fulfilled") {
+          dispatch(clearCart());
+          const orderId = res.payload.order._id;
+          // persist guest order with restaurant context
+          saveGuestOrder({
+            id: orderId,
+            restaurantId,
+            status: res.payload.order.status,
+          });
+
+          toast.success("Order placed successfully!");
+          closeDrawer();
+          router.push(`/orderSuccess/${orderId}`);
+        } else toast.error(res.payload || "Failed to place order.");
+      }
     } catch (error) {
       console.error(error);
       toast.error("Unexpected error while placing order.");
@@ -97,21 +178,10 @@ export default function CartDrawer({ restaurantId }) {
 
   useEffect(() => {
     setIsClient(true);
-    const savedOrder = localStorage.getItem("guestOrder");
-    if (savedOrder) {
-      try {
-        const { id, timestamp } = JSON.parse(savedOrder);
-        const now = Date.now();
-        if (now - timestamp <= 15 * 60 * 1000) {
-          router.replace(`/orderSuccess/${id}`);
-        } else {
-          localStorage.removeItem("guestOrder");
-        }
-      } catch (e) {
-        console.error("Error parsing guestOrder:", e);
-        localStorage.removeItem("guestOrder");
-      }
-    }
+    // Cleanup if an already-completed order expired
+    cleanupExpiredGuestOrder();
+    const savedOrder = getGuestOrder();
+    // Do NOT auto-redirect. We only show the user icon + dropdown in Header to navigate on demand.
   }, [router]);
 
   useEffect(() => {
@@ -291,12 +361,25 @@ export default function CartDrawer({ restaurantId }) {
                         onChange={(e) => setTableNumber(e.target.value)}
                         className="w-full border overflow-y-auto rounded-lg p-3 bg-white focus:ring-2 focus:ring-black focus:outline-none transition"
                       >
-                        <option value="">Select Table (Required)</option>
-                        {tables.map((t) => (
-                          <option key={t._id} value={t.number}>
-                            Table {t.tableNumber}
+                        <option value="">
+                          Select Table{" "}
+                          {activeGuest ? "(Optional)" : "(Required)"}
+                        </option>
+                        {activeGuest && myTableNumber && (
+                          <option value={String(myTableNumber)}>
+                            {`Table ${myTableNumber} (Your table)`}
                           </option>
-                        ))}
+                        )}
+                        {tables
+                          .filter(
+                            (t) =>
+                              String(t.tableNumber) !== String(myTableNumber)
+                          )
+                          .map((t) => (
+                            <option key={t._id} value={t.tableNumber}>
+                              Table {t.tableNumber}
+                            </option>
+                          ))}
                       </select>
                     </motion.div>
 
@@ -315,7 +398,9 @@ export default function CartDrawer({ restaurantId }) {
                     <Button
                       onClick={handlePlaceOrder}
                       disabled={
-                        placing || cart.items.length === 0 || !tableNumber
+                        placing ||
+                        cart.items.length === 0 ||
+                        (!activeGuest && !tableNumber)
                       }
                       className="w-full h-12 bg-black hover:bg-gray-900 text-white rounded-lg font-semibold transition-all duration-300"
                     >

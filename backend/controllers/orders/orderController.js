@@ -81,6 +81,72 @@ export const createOrder = async (req, res) => {
   }
 };
 
+// PATCH /api/orders/:id/add-items (public)
+// Allows adding items to an existing active order (pending/accepted) while UNPAID.
+export const addItemsToOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { items } = req.body; // [{ menuItemId, quantity }]
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Items array is required to add to the order" });
+    }
+
+    const order = await Order.findById(orderId).populate("restaurant");
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // Only allow while order is active and unpaid
+    if (!["pending", "accepted"].includes(order.status)) {
+      return res.status(400).json({
+        message: "Cannot add items to this order. Order is not active.",
+      });
+    }
+    if (order.paymentStatus === "PAID") {
+      return res
+        .status(400)
+        .json({ message: "Cannot add items to an already paid order." });
+    }
+
+    const restaurantId = order.restaurant._id;
+    const { orderItems, total } = await buildOrderLines(restaurantId, items);
+
+    // Merge items: increment quantity for existing lines with same menuItem
+    for (const newLine of orderItems) {
+      const idx = order.items.findIndex((li) =>
+        li.menuItem.equals(newLine.menuItem)
+      );
+      if (idx >= 0) {
+        order.items[idx].quantity += newLine.quantity;
+      } else {
+        order.items.push(newLine);
+      }
+    }
+    order.totalAmount = (order.totalAmount || 0) + total;
+
+    // If previously accepted or pending we keep status. If kitchen needs re-notify, that happens via socket below.
+    await order.save();
+
+    // Notify kitchen with special "items-added" event for highlighting
+    io.to(`restaurant:${restaurantId}`).emit("order:items-added", {
+      order,
+      tableNumber: order.tableNumber,
+      addedItems: orderItems,
+      message: `Table ${order.tableNumber} added more items to their order`,
+    });
+
+    // Also emit standard update for customer and any other listeners
+    io.to(`restaurant:${restaurantId}`).emit("order:update", order);
+    io.to(`order:${order._id}`).emit("order:update", order);
+
+    res.json({ success: true, message: "Items added to order", order });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // GET /api/orders/active?status=pending|accepted|preparing|ready
 export const listActiveOrders = async (req, res) => {
   try {

@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Search as SearchIcon, Grid, List, User } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
+import api from "@/lib/axios";
+import {
+  getGuestOrder,
+  isGuestOrderActiveForRestaurant,
+  cleanupExpiredGuestOrder,
+  markGuestOrderCompleted,
+  getGuestOrderCompletedAt,
+  saveGuestOrder,
+} from "@/lib/guestOrder";
+import { getSocket } from "@/utils/getSocket";
 
 export const Header = ({
   restaurant,
@@ -43,23 +53,14 @@ export const Header = ({
   // ✅ Check for active guestOrder in localStorage
   useEffect(() => {
     const checkGuestOrder = () => {
-      const guestOrder = localStorage.getItem("guestOrder");
-      const completed = localStorage.getItem("guestOrderCompletedAt");
-
-      if (guestOrder && completed) {
-        const { completedAt } = JSON.parse(completed);
-        const elapsed = (Date.now() - completedAt) / 1000;
-        if (elapsed < 15 * 60) {
-          setHasGuestOrder(true);
-        } else {
-          // auto cleanup if expired
-          localStorage.removeItem("guestOrder");
-          localStorage.removeItem("guestOrderCompletedAt");
-          setHasGuestOrder(false);
-        }
-      } else {
+      // Clean up if any expired completed order
+      cleanupExpiredGuestOrder();
+      // Only show for the current restaurant
+      if (!restaurant?._id) {
         setHasGuestOrder(false);
+        return;
       }
+      setHasGuestOrder(isGuestOrderActiveForRestaurant(restaurant._id));
     };
 
     // Run once on mount
@@ -68,6 +69,63 @@ export const Header = ({
     // 👇 Recheck every 10 seconds (in case of expiration)
     const interval = setInterval(checkGuestOrder, 10000);
     return () => clearInterval(interval);
+  }, [restaurant?._id]);
+
+  // 🔌 Listen to order status updates for the current guest order (if any)
+  useEffect(() => {
+    const current = getGuestOrder();
+    if (!current?.id) return;
+    const socket = getSocket();
+    try {
+      socket.emit("joinOrder", { orderId: current.id });
+    } catch (_) {}
+
+    const onUpdate = (updatedOrder) => {
+      if (!updatedOrder || updatedOrder._id !== current.id) return;
+
+      // keep local guest order status in sync
+      saveGuestOrder({
+        id: current.id,
+        restaurantId: current.restaurantId || updatedOrder.restaurant?._id,
+        status: updatedOrder.status,
+      });
+
+      if (updatedOrder.status === "completed" && !getGuestOrderCompletedAt()) {
+        markGuestOrderCompleted(current.id);
+      }
+
+      // Refresh header visibility logic
+      setHasGuestOrder(isGuestOrderActiveForRestaurant(restaurant?._id));
+    };
+
+    socket.on("order:update", onUpdate);
+    return () => {
+      try {
+        socket.off("order:update", onUpdate);
+      } catch (_) {}
+    };
+  }, [restaurant?._id]);
+
+  // 🔁 One-time server sync in case socket was missed while away
+  useEffect(() => {
+    const o = getGuestOrder();
+    if (!o?.id) return;
+    (async () => {
+      try {
+        const res = await api.get(`/orders/order/${o.id}`);
+        const srv = res?.data?.order;
+        if (!srv) return;
+        saveGuestOrder({
+          id: o.id,
+          restaurantId: o.restaurantId || srv.restaurant?._id,
+          status: srv.status,
+        });
+        if (srv.status === "completed" && !getGuestOrderCompletedAt()) {
+          markGuestOrderCompleted(o.id);
+        }
+        setHasGuestOrder(isGuestOrderActiveForRestaurant(restaurant?._id));
+      } catch (_) {}
+    })();
   }, []);
 
   return (
@@ -153,11 +211,11 @@ export const Header = ({
                     className="absolute right-0 top-10 bg-white border shadow-md rounded-lg w-40 py-2"
                   >
                     <button
-                      onClick={() =>
-                        (window.location.href = `/order-status/${
-                          JSON.parse(localStorage.getItem("guestOrder"))?.id
-                        }`)
-                      }
+                      onClick={() => {
+                        const o = getGuestOrder();
+                        if (o?.id)
+                          window.location.href = `/orderSuccess/${o.id}`;
+                      }}
                       className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                     >
                       View your order

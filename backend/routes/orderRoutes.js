@@ -7,6 +7,7 @@ import {
   updateOrderStatus,
   updateOrderPayment,
   getOrderDetails,
+  addItemsToOrder,
 } from "../controllers/orders/orderController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import roleMiddleware from "../middleware/roleMiddleware.js";
@@ -15,6 +16,8 @@ const router = express.Router();
 
 // Public: customers place orders (no auth)
 router.post("/", createOrder);
+// Public: add items to existing active order (unpaid)
+router.patch("/:id/add-items", addItemsToOrder);
 
 // Kitchen/Admin: must be owner or chef
 router.get(

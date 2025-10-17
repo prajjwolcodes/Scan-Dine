@@ -20,6 +20,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { io } from "socket.io-client";
+import {
+  saveGuestOrder,
+  markGuestOrderCompleted,
+  getGuestOrderCompletedAt,
+  removeGuestOrder,
+} from "@/lib/guestOrder";
 
 let socket;
 
@@ -34,17 +40,14 @@ export default function OrderStatusPage() {
     const fetchOrder = async () => {
       try {
         const res = await api.get(`/orders/order/${orderId}`);
-        console.log(res.data.order);
         setOrder(res.data.order);
         setLoading(false);
-
-        localStorage.setItem(
-          "guestOrder",
-          JSON.stringify({
-            id: res.data.order._id,
-            status: res.data.order.status,
-          })
-        );
+        // ensure guest order persistence has restaurantId
+        saveGuestOrder({
+          id: res.data.order._id,
+          restaurantId: res.data.order.restaurant?._id,
+          status: res.data.order.status,
+        });
       } catch (err) {
         toast.error(err.response?.data?.message || "Failed to fetch order");
       }
@@ -60,13 +63,9 @@ export default function OrderStatusPage() {
         setOrder(updatedOrder);
         if (
           updatedOrder.status === "completed" &&
-          !localStorage.getItem("guestOrderCompletedAt")
+          !getGuestOrderCompletedAt()
         ) {
-          const completedAt = Date.now();
-          localStorage.setItem(
-            "guestOrderCompletedAt",
-            JSON.stringify({ id: orderId, completedAt })
-          );
+          const completedAt = markGuestOrderCompleted(orderId);
           setRemainingTime(15 * 60);
         }
       }
@@ -77,18 +76,17 @@ export default function OrderStatusPage() {
 
   // ⏱ Countdown setup
   useEffect(() => {
-    const saved = localStorage.getItem("guestOrderCompletedAt");
+    const saved = getGuestOrderCompletedAt();
     if (!saved) return;
 
-    const { completedAt } = JSON.parse(saved);
+    const { completedAt } = saved;
     const now = Date.now();
     const elapsed = Math.floor((now - completedAt) / 1000);
 
     if (elapsed < 15 * 60) {
       setRemainingTime(15 * 60 - elapsed);
     } else {
-      localStorage.removeItem("guestOrder");
-      localStorage.removeItem("guestOrderCompletedAt");
+      removeGuestOrder();
       setRemainingTime(0);
     }
   }, []);
@@ -99,8 +97,7 @@ export default function OrderStatusPage() {
       setRemainingTime((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          localStorage.removeItem("guestOrder");
-          localStorage.removeItem("guestOrderCompletedAt");
+          removeGuestOrder();
           return 0;
         }
         return prev - 1;
@@ -135,7 +132,11 @@ export default function OrderStatusPage() {
       <header className="flex items-center sticky top-0 z-30 backdrop-blur-sm ">
         <Button
           variant="ghost"
-          onClick={() => router.push("/menu/" + order.restaurant._id)}
+          onClick={() =>
+            order.restaurant._id
+              ? router.push("/menu/" + order.restaurant._id)
+              : router.back()
+          }
           className="text-white max-w-sm hover:bg-white/10"
         >
           <ArrowLeft size={30} className="h-10 w-10 mr-1 text-black" />

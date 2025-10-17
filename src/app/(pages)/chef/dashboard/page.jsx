@@ -19,6 +19,7 @@ export default function ChefDashboard() {
   const [restaurant, setRestaurant] = useState(null);
   const [latestOrder, setLatestOrder] = useState(null);
   const [fadingOrderId, setFadingOrderId] = useState(null); // New state to track fading order
+  const [highlightedOrders, setHighlightedOrders] = useState(new Set()); // Track orders with added items
   const statuses = ["pending", "accepted", "completed", "cancelled"];
 
   const fetchOrders = async () => {
@@ -57,6 +58,34 @@ export default function ChefDashboard() {
         );
         setLatestOrder(null);
       });
+
+      // Items added to existing order - show notification and highlight
+      socket.on(
+        "order:items-added",
+        ({ order, tableNumber, addedItems, message }) => {
+          toast.success(message, {
+            duration: 5000,
+            icon: "🔔",
+          });
+
+          // Update the order in the list
+          setOrders((prev) =>
+            prev.map((o) => (o?._id === order?._id ? order : o))
+          );
+
+          // Highlight this order
+          setHighlightedOrders((prev) => new Set(prev).add(order._id));
+
+          // Remove highlight after 10 seconds
+          setTimeout(() => {
+            setHighlightedOrders((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(order._id);
+              return newSet;
+            });
+          }, 10000);
+        }
+      );
 
       return () => socket.disconnect();
     }
@@ -128,11 +157,20 @@ export default function ChefDashboard() {
               .map((order) => (
                 <div
                   key={order?._id}
-                  className="w-full p-4 border rounded shadow flex justify-between items-center"
+                  className={`w-full p-4 border rounded shadow flex justify-between items-center transition-all duration-500 ${
+                    highlightedOrders.has(order._id)
+                      ? "bg-blue-100 border-blue-400 border-2 animate-pulse"
+                      : "bg-white"
+                  }`}
                 >
                   <div>
                     <p>
                       Table: <strong>{order.tableNumber}</strong>
+                      {highlightedOrders.has(order._id) && (
+                        <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-200 px-2 py-1 rounded">
+                          ITEMS ADDED
+                        </span>
+                      )}
                     </p>
                     <div>
                       Items:{" "}
@@ -204,11 +242,20 @@ export default function ChefDashboard() {
                     .map((order) => (
                       <div
                         key={order?._id}
-                        className="p-4 border rounded shadow flex justify-between items-center"
+                        className={`p-4 border rounded shadow flex justify-between items-center transition-all duration-500 ${
+                          highlightedOrders.has(order._id)
+                            ? "bg-blue-100 border-blue-400 border-2 animate-pulse"
+                            : "bg-white"
+                        }`}
                       >
                         <div>
                           <p>
                             Table: <strong>{order.tableNumber}</strong>
+                            {highlightedOrders.has(order._id) && (
+                              <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-200 px-2 py-1 rounded">
+                                ITEMS ADDED
+                              </span>
+                            )}
                           </p>
                           <div>
                             Items:{" "}
