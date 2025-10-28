@@ -31,7 +31,7 @@ export default function QrGenerator() {
 
       <button
         onClick={generateQrCode}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
+        className="bg-blue-600 text-gray-100 px-4 py-2 rounded"
       >
         Generate QR
       </button>

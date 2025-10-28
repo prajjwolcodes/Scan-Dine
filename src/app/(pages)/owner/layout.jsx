@@ -4,7 +4,7 @@ import React from "react";
 
 export default function RootLayout({ children }) {
   return (
-    <div className="pt-8 px-10  ">
+    <div className="p-2 sm:pt-8 sm:px-10  ">
       <ProtectedRoute allowedRoles={["owner"]}>
         <OwnerRoute>{children}</OwnerRoute>
       </ProtectedRoute>

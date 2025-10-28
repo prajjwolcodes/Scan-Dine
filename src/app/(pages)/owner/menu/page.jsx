@@ -369,7 +369,7 @@ export default function RestaurantDashboard() {
       <motion.div
         whileHover={{ scale: 1.01 }}
         className={`flex  items-center justify-between gap-3 p-3 rounded-lg cursor-pointer ${
-          isSelected ? "bg-black text-white" : "hover:bg-gray-50"
+          isSelected ? "bg-black text-gray-100" : "hover:bg-gray-50"
         }`}
         onClick={() => setSelectedCatId(cat._id)}
       >
@@ -577,7 +577,7 @@ export default function RestaurantDashboard() {
               dispatch(updateUser({ hasMenu: true }));
               router.push("/owner/dashboard");
             }}
-            className="absolute bottom-8 right-8 bg-gray-800 text-white p-4 py-2 rounded-md font-medium hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="absolute bottom-8 right-8 bg-gray-800 text-gray-100 p-4 py-2 rounded-md font-medium hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue
           </button>

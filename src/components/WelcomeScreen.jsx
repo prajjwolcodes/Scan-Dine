@@ -39,10 +39,12 @@ export default function WelcomeScreen({ path }) {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white"
+                className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100"
               >
                 Welcome to{" "}
-                <span className="text-black dark:text-white">Scan & Dine</span>
+                <span className="text-black dark:text-gray-100">
+                  Scan & Dine
+                </span>
               </motion.h1>
             )}
 
@@ -51,10 +53,10 @@ export default function WelcomeScreen({ path }) {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white"
+                className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100"
               >
                 Great job!{" "}
-                <span className="text-black dark:text-white">
+                <span className="text-black dark:text-gray-100">
                   You are officially set up!
                 </span>
               </motion.h1>
@@ -66,10 +68,10 @@ export default function WelcomeScreen({ path }) {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white"
+              className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100"
             >
               Wow!
-              <span className="text-black dark:text-white">
+              <span className="text-black dark:text-gray-100">
                 You have a digital menu now!
               </span>
             </motion.h1>

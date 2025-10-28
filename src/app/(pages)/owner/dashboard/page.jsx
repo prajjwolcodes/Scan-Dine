@@ -631,7 +631,7 @@ export default function OwnerDashboard() {
               key={n.key}
               onClick={() => setActive(n.key)}
               className={`w-full text-left px-3 py-2 rounded-md flex items-center gap-3 cursor-pointer ${
-                isActive ? "bg-black text-white" : "hover:bg-gray-50"
+                isActive ? "bg-black text-gray-100" : "hover:bg-gray-50"
               }`}
             >
               <span className="font-medium">{n.icon}</span>
@@ -816,13 +816,11 @@ export default function OwnerDashboard() {
 
   const CategoriesView = () => (
     <>
-      <div className="flex items-center justify-between mb-4 p-4">
-        <div>
-          <h2 className="text-xl font-semibold">Categories</h2>
-          <p className="text-sm text-gray-500">
-            Create and manage categories for your menu.
-          </p>
-        </div>
+      <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4 p-2 sm:p-4">
+        <h2 className="text-xl font-semibold">Categories</h2>
+        <p className="text-sm text-gray-500">
+          Create and manage categories for your menu.
+        </p>
 
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -831,7 +829,7 @@ export default function OwnerDashboard() {
               placeholder="Search categories..."
               value={categorySearch}
               onChange={(e) => setCategorySearch(e.target.value)}
-              className="pl-10 w-98"
+              className="text:sm pl-10 sm:w-98"
             />
           </div>
 
@@ -1093,7 +1091,7 @@ export default function OwnerDashboard() {
                 <Button
                   onClick={handleGenerateQr}
                   disabled={loading}
-                  className="text-white px-5 py-2 rounded-lg shadow-sm transition-all"
+                  className="text-gray-100 px-5 py-2 rounded-lg shadow-sm transition-all"
                 >
                   {loading ? "Generating..." : "Generate QR"}
                 </Button>

@@ -203,7 +203,7 @@ export default function CartDrawer({ restaurantId }) {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
         >
-          <p className="text-white text-lg font-medium animate-pulse">
+          <p className="text-gray-100 text-lg font-medium animate-pulse">
             Placing order...
           </p>
         </motion.div>
@@ -216,7 +216,7 @@ export default function CartDrawer({ restaurantId }) {
       >
         <button
           onClick={openDrawer}
-          className="flex items-center gap-3 bg-black text-white px-5 py-3 rounded-full shadow-2xl transition-all duration-200"
+          className="flex items-center gap-3 bg-black text-gray-100 px-5 py-3 rounded-full shadow-2xl transition-all duration-200"
         >
           {isClient ? (
             <>
@@ -402,7 +402,7 @@ export default function CartDrawer({ restaurantId }) {
                         cart.items.length === 0 ||
                         (!activeGuest && !tableNumber)
                       }
-                      className="w-full h-12 bg-black hover:bg-gray-900 text-white rounded-lg font-semibold transition-all duration-300"
+                      className="w-full h-12 bg-black hover:bg-gray-900 text-gray-100 rounded-lg font-semibold transition-all duration-300"
                     >
                       {placing
                         ? "Placing..."

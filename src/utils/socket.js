@@ -99,7 +99,7 @@ export default function SocketComponent() {
             <p className="mt-4">Selected Room : {room}</p>
             <button
               type="submit"
-              className="mt-2 p-2 bg-green-500 text-white rounded"
+              className="mt-2 p-2 bg-green-500 text-gray-100 rounded"
             >
               Join Room
             </button>
@@ -119,7 +119,7 @@ export default function SocketComponent() {
 
       <button
         onClick={handleMessage}
-        className="mt-2 p-2 bg-blue-500 text-white rounded"
+        className="mt-2 p-2 bg-blue-500 text-gray-100 rounded"
       >
         Send
       </button>

@@ -139,7 +139,7 @@ export default function SignupPage() {
 
             <Button
               type="submit"
-              className="w-full bg-black text-white hover:bg-gray-900"
+              className="w-full bg-black text-gray-100 hover:bg-gray-900"
               disabled={loading}
             >
               {loading ? "Loading..." : "Continue"}

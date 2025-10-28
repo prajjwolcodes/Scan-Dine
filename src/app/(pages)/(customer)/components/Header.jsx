@@ -135,14 +135,14 @@ export const Header = ({
         <Image
           src={restaurant?.logo || "/logo.png"}
           alt={restaurant?.name || "Restaurant"}
-          className="w-12 h-12 rounded-full object-cover border"
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border"
           width={48}
           height={48}
         />
 
         {/* Name + Address */}
         <div className="flex-1">
-          <h1 className="text-lg font-semibold">
+          <h1 className="text-base sm:text-lg font-semibold">
             {restaurant?.name || "Restaurant Menu"}
           </h1>
           <p className="text-xs text-gray-500">{restaurant?.address || ""}</p>
@@ -243,7 +243,7 @@ export const Header = ({
                   onClick={() => handleTabClick(cat._id)}
                   className={`px-3 py-1.5 rounded-full whitespace-nowrap text-sm font-medium transition ${
                     isActive
-                      ? "bg-black text-white shadow-sm"
+                      ? "bg-black text-gray-100 shadow-sm"
                       : "bg-gray-100 text-gray-800"
                   }`}
                 >

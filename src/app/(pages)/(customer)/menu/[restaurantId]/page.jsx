@@ -46,7 +46,6 @@ export default function RestaurantMenuPage() {
   const [activeCat, setActiveCat] = useState("all");
   const [restaurant, setRestaurant] = useState(storeRestaurant || null);
   const [query, setQuery] = useState("");
-  const [availableOnly, setAvailableOnly] = useState(false);
   const [view, setView] = useState("grid"); // or 'list'
   const [addingItemId, setAddingItemId] = useState(null);
 
@@ -124,7 +123,6 @@ export default function RestaurantMenuPage() {
     const list =
       activeCat === "all" ? grouped["all"] || [] : grouped[activeCat] || [];
     return list.filter((it) => {
-      if (availableOnly && !it.available) return false;
       if (!q) return true;
       return (
         (it.name || "").toLowerCase().includes(q) ||
@@ -132,7 +130,7 @@ export default function RestaurantMenuPage() {
         (it.category?.name || "").toLowerCase().includes(q)
       );
     });
-  }, [query, availableOnly, activeCat, grouped]);
+  }, [query, activeCat, grouped]);
 
   // Add to cart (uses your redux action)
   const onAdd = async (item) => {
@@ -231,11 +229,6 @@ export default function RestaurantMenuPage() {
             No image
           </div>
         )}
-        {item.available === false && (
-          <div className="absolute left-2 top-2 bg-white/80 text-red-600 text-xs px-2 py-1 rounded-full">
-            Not available
-          </div>
-        )}
       </div>
 
       <div className="mt-3 flex-1 flex flex-col">
@@ -257,7 +250,7 @@ export default function RestaurantMenuPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => onAdd(item)}
-              disabled={!item.available || addingItemId === item._id}
+              disabled={addingItemId === item._id}
               className={`px-8 py-2 rounded-full text-sm font-medium transition inline-flex items-center gap-2 ${
                 item.available
                   ? "bg-black text-white"
@@ -283,9 +276,7 @@ export default function RestaurantMenuPage() {
     <motion.div className="flex flex-col gap-1">
       <div
         key={item._id}
-        className={`flex items-center bg-white border rounded-xl p-3 shadow-sm hover:shadow-md transition ${
-          item.available === false ? "opacity-60" : ""
-        }`}
+        className={`flex items-center bg-white border rounded-xl p-3 shadow-sm hover:shadow-md transition `}
       >
         <img
           src={item.image || "/placeholder.png"}
@@ -308,7 +299,7 @@ export default function RestaurantMenuPage() {
             </Badge>
             <button
               onClick={() => onAdd(item)}
-              disabled={!item.available || addingItemId === item._id}
+              disabled={addingItemId === item._id}
               className={`ml-4 px-4 py-1 rounded-full text-sm font-medium transition flex-shrink-0 ${
                 item.available
                   ? "bg-black text-white"
@@ -381,7 +372,6 @@ export default function RestaurantMenuPage() {
                   if (cat._id === "all") return null;
 
                   const listForCat = (grouped[cat._id] || []).filter((it) => {
-                    if (availableOnly && !it.available) return false;
                     if (!query) return true;
                     const q = query.toLowerCase();
                     return (

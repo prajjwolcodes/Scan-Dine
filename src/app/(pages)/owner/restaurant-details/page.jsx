@@ -99,9 +99,9 @@ export default function RestaurantDetailsForm() {
             className="rounded-2xl shadow-lg"
           ></Image>
           {/* <div className="bg-white/80 dark:bg-gray-900/40 p-5 rounded-2xl shadow-md">
-            <UtensilsCrossed className="h-10 w-10 text-gray-800 dark:text-white mx-auto" />
+            <UtensilsCrossed className="h-10 w-10 text-gray-800 dark:text-gray-100 mx-auto" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white text-center">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 text-center">
             Welcome to{" "}
             <span className="text-black dark:text-gray-100">Scan & Dine</span>
           </h2>
@@ -120,7 +120,7 @@ export default function RestaurantDetailsForm() {
           className="w-full md:w-1/2 p-8 md:p-10 space-y-6"
         >
           <div className="text-center md:text-left space-y-1">
-            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
               Restaurant Details
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">

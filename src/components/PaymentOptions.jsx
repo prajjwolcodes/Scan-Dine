@@ -74,7 +74,7 @@ export default function PaymentOptions({ orderId }) {
             onClick={() => setPaymentMethod(opt.id)}
             className={`cursor-pointer flex items-center justify-between p-4 rounded-xl border transition-all duration-300 shadow-sm ${
               paymentMethod === opt.id
-                ? "text-white border-transparent ring-2 ring-offset-2 ring-black bg-gradient-to-r " +
+                ? "text-gray-100 border-transparent ring-2 ring-offset-2 ring-black bg-gradient-to-r " +
                   opt.color +
                   " "
                 : "border-gray-200 bg-white hover:border-gray-300"
@@ -94,7 +94,9 @@ export default function PaymentOptions({ orderId }) {
                 <p className="font-medium">{opt.name}</p>
                 <p
                   className={`text-xs ${
-                    paymentMethod === opt.id ? "text-white/90" : "text-gray-500"
+                    paymentMethod === opt.id
+                      ? "text-gray-100/90"
+                      : "text-gray-500"
                   }`}
                 >
                   {opt.desc}
@@ -121,7 +123,7 @@ export default function PaymentOptions({ orderId }) {
         <Button
           onClick={handleDigitalPayment}
           disabled={loading}
-          className="w-full h-11 text-white font-semibold bg-black hover:bg-gray-800 transition-all duration-300"
+          className="w-full h-11 text-gray-100 font-semibold bg-black hover:bg-gray-800 transition-all duration-300"
         >
           {loading ? "Redirecting..." : `Pay Now with ${paymentMethod}`}
         </Button>

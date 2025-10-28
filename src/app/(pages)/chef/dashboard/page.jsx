@@ -1,30 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import api from "@/lib/axios";
 import { toast } from "react-hot-toast";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDispatch, useSelector } from "react-redux";
-import { logout } from "@/app/store/authSlice";
+import { useSelector, useDispatch } from "react-redux";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { Button } from "@/components/ui/button";
+import { logout } from "@/app/store/authSlice";
+import AcceptedOrdersBar from "../components/AcceptedOrdersBar";
+import NewOrderPopup from "../components/NewOrderPopup";
+import OrderTabs from "../components/OrderTabs";
+import { LogOut } from "lucide-react";
 
+// IMPORTANT: ensure socket server URL is correct for your environment
 let socket;
 
 export default function ChefDashboard() {
-  const { user, token } = useSelector((state) => state.auth);
-  const [orders, setOrders] = useState([]);
+  const { user, token } = useSelector((s) => s.auth);
   const dispatch = useDispatch();
-  const [restaurant, setRestaurant] = useState(null);
-  const [latestOrder, setLatestOrder] = useState(null);
-  const [fadingOrderId, setFadingOrderId] = useState(null); // New state to track fading order
-  const [highlightedOrders, setHighlightedOrders] = useState(new Set()); // Track orders with added items
-  const statuses = ["pending", "accepted", "completed", "cancelled"];
 
+  const [orders, setOrders] = useState([]); // all orders
+  const [restaurant, setRestaurant] = useState(null);
+  const [latestOrder, setLatestOrder] = useState(null); // newest incoming order (for popup)
+  const [highlightedOrders, setHighlightedOrders] = useState(new Set()); // items-added highlights
+
+  // audio ref so we don't recreate element repeatedly
+  const audioRef = useRef(null);
+  useEffect(() => {
+    audioRef.current =
+      typeof Audio !== "undefined"
+        ? new Audio("/sounds/notification.mp3")
+        : null;
+  }, []);
+
+  // Fetch all orders & restaurant info on mount
   const fetchOrders = async () => {
     try {
-      const res = await api.get(`/orders`, {
+      // your existing route used in original code was GET /orders
+      const res = await api.get("/orders", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrders(res.data.orders || []);
@@ -35,258 +49,133 @@ export default function ChefDashboard() {
   };
 
   useEffect(() => {
-    if (user?.restaurant) {
-      fetchOrders();
-      socket = io("http://localhost:8000");
+    if (!user?.restaurant) return;
+    fetchOrders();
 
-      socket.on("connect", () => {
-        socket.emit("joinRestaurant", { restaurantId: user.restaurant });
+    // connect socket
+    socket = io(
+      /* you can replace with process.env.SOCKET_URL */ "http://localhost:8000",
+      {
+        transports: ["websocket"],
+      }
+    );
+
+    socket.on("connect", () => {
+      socket.emit("joinRestaurant", { restaurantId: user.restaurant });
+    });
+
+    // New order arrives
+    socket.on("order:new", (order) => {
+      // play sound
+      try {
+        audioRef.current?.play().catch(() => {});
+      } catch (e) {}
+      toast.success(`New order — Table ${order.tableNumber}`);
+
+      setLatestOrder(order);
+      setOrders((prev) => [order, ...prev]);
+    });
+
+    // Items added to existing order
+    socket.on("order:items-added", ({ order, message }) => {
+      toast.success(message || `Items added to Table ${order.tableNumber}`);
+      setOrders((prev) => prev.map((o) => (o._id === order._id ? order : o)));
+
+      // highlight the order briefly
+      setHighlightedOrders((s) => {
+        const next = new Set(s);
+        next.add(order._id);
+        return next;
       });
+      setTimeout(() => {
+        setHighlightedOrders((s) => {
+          const next = new Set(s);
+          next.delete(order._id);
+          return next;
+        });
+      }, 10000); // highlight 10s
+    });
 
-      // New order received: Display it without fading
-      socket.on("order:new", (order) => {
-        toast.success(`New order from table ${order.tableNumber}`);
-        setLatestOrder(order);
-        setOrders((prev) => [order, ...prev]);
-        setFadingOrderId(null); // Ensure no old fade is active
-      });
-
-      // Order updated
-      socket.on("order:update", (updatedOrder) => {
-        setOrders((prev) =>
-          prev.map((o) => (o?._id === updatedOrder?._id ? updatedOrder : o))
-        );
-        setLatestOrder(null);
-      });
-
-      // Items added to existing order - show notification and highlight
-      socket.on(
-        "order:items-added",
-        ({ order, tableNumber, addedItems, message }) => {
-          toast.success(message, {
-            duration: 5000,
-            icon: "🔔",
-          });
-
-          // Update the order in the list
-          setOrders((prev) =>
-            prev.map((o) => (o?._id === order?._id ? order : o))
-          );
-
-          // Highlight this order
-          setHighlightedOrders((prev) => new Set(prev).add(order._id));
-
-          // Remove highlight after 10 seconds
-          setTimeout(() => {
-            setHighlightedOrders((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(order._id);
-              return newSet;
-            });
-          }, 10000);
-        }
-      );
-
-      return () => socket.disconnect();
-    }
-  }, [user]);
-
-  const acceptOrder = async (orderId) => {
-    try {
-      const res = await api.patch(
-        `/orders/status/${orderId}`,
-        { status: "accepted", chefId: user?._id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      socket.emit("order:update", res.data.order);
+    // Generic order update
+    socket.on("order:update", (updatedOrder) => {
       setOrders((prev) =>
-        prev.map((o) => (o?._id === orderId ? res.data.order : o))
+        prev.map((o) => (o._id === updatedOrder._id ? updatedOrder : o))
       );
-      setLatestOrder(null);
-      toast.success(`Order ${orderId} accepted`);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to accept order");
-    }
-  };
+      // clear latestOrder if it was updated/accepted
+      setLatestOrder((lo) => (lo && lo._id === updatedOrder._id ? null : lo));
+    });
 
-  const updatedOrderStatus = async (orderId, status) => {
+    // cleanup
+    return () => {
+      socket?.disconnect();
+      socket = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.restaurant, token]);
+
+  // handler to update order status (accept / complete / cancel)
+  const updateOrderStatus = async (orderId, payload) => {
     try {
-      const res = await api.patch(`/orders/status/${orderId}`, status, {
+      const res = await api.patch(`/orders/status/${orderId}`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      console.log(res);
-
-      socket.emit("order:update", res.data.order);
+      // emit via socket to notify others (server probably emits already, but keep local sync)
+      socket?.emit("order:update", res.data.order);
       setOrders((prev) =>
-        prev.map((o) => (o?._id === orderId ? res.data.order : o))
+        prev.map((o) => (o._id === orderId ? res.data.order : o))
       );
-      toast.success(`Order ${orderId} ${status.status} successfully`);
+      toast.success(`Order ${orderId} ${payload.status}`);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update order");
     }
   };
 
+  // Accept order convenience wrapper (include chefId)
+  const acceptOrder = async (orderId) => {
+    await updateOrderStatus(orderId, { status: "accepted", chefId: user?._id });
+  };
+
   return (
     <ProtectedRoute allowedRoles={["chef"]}>
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
-        {/* {orders.map((o) => o.acceptedBy)} */}
-        <button onClick={() => dispatch(logout())}>Logout</button>
-        <h1 className="text-2xl font-bold mb-4">Chef Dashboard</h1>
-        <h2 className="text-xl font-semibold mb-2">{user?.username}</h2>
-        {restaurant ? (
-          <p>{restaurant.name}</p>
-        ) : (
-          <p className="text-gray-400">Unkwown</p>
-        )}
-
-        {orders.filter(
-          (o) => o.acceptedBy === user?._id && o.status === "accepted"
-        ).length > 0 && (
-          <div
-            className={`p-4 border flex flex-col gap-3 justify-between rounded shadow transition-opacity duration-1000 opacity-100 bg-yellow-50 `}
-          >
-            <p className="font-semibold text-lg">
-              Accepted and Preparing Order:
+      <div className="px-4 py-6 max-w-5xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Chef Dashboard</h1>
+            <p className="text-sm text-gray-600">
+              {user?.username} · {restaurant?.name || "Restaurant"}
             </p>
-            {orders
-              .filter(
-                (o) => o.acceptedBy === user?._id && o.status === "accepted"
-              )
-              .map((order) => (
-                <div
-                  key={order?._id}
-                  className={`w-full p-4 border rounded shadow flex justify-between items-center transition-all duration-500 ${
-                    highlightedOrders.has(order._id)
-                      ? "bg-blue-100 border-blue-400 border-2 animate-pulse"
-                      : "bg-white"
-                  }`}
-                >
-                  <div>
-                    <p>
-                      Table: <strong>{order.tableNumber}</strong>
-                      {highlightedOrders.has(order._id) && (
-                        <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-200 px-2 py-1 rounded">
-                          ITEMS ADDED
-                        </span>
-                      )}
-                    </p>
-                    <div>
-                      Items:{" "}
-                      {order.items.map((i, idx) => (
-                        <div key={idx}>{`${i.name} x${i.quantity}`}</div>
-                      ))}
-                    </div>
-                  </div>
-                  {order.status === "accepted" && (
-                    <Button
-                      onClick={() =>
-                        updatedOrderStatus(order?._id, { status: "completed" })
-                      }
-                    >
-                      Complete Order
-                    </Button>
-                  )}
-                </div>
-              ))}
           </div>
-        )}
 
-        {/* Latest Order Notification with fade effect */}
-        {latestOrder && (
-          <div
-            className={`p-4 border flex justify-between rounded shadow transition-opacity duration-1000 ${
-              fadingOrderId === latestOrder?._id
-                ? "opacity-0"
-                : "opacity-100 bg-yellow-50"
-            }`}
-          >
-            <div className="flex flex-col gap-1">
-              <p className="font-semibold">Latest Order</p>
-              <p>Table: {latestOrder.tableNumber}</p>
-              <p>Status: {latestOrder.status}</p>
-              <div>
-                Items:{" "}
-                {latestOrder.items.map((i, idx) => (
-                  <div key={idx}>{`${i.name} x${i.quantity}`}</div>
-                ))}
-              </div>
-            </div>
-            {latestOrder.status === "pending" && (
-              <Button onClick={() => acceptOrder(latestOrder?._id)}>
-                Accept
-              </Button>
-            )}
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={() => dispatch(logout())}>
+              <LogOut className="h-4 w-4 " /> Logout
+            </Button>
           </div>
-        )}
+        </div>
 
-        {/* Tabs by status */}
-        <Tabs defaultValue="pending">
-          <TabsList>
-            {statuses.map((status) => (
-              <TabsTrigger key={status} value={status}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {/* Always-visible accepted/preparing orders bar */}
+        <AcceptedOrdersBar
+          orders={orders.filter((o) =>
+            ["accepted", "preparing"].includes(o.status)
+          )}
+          onComplete={(id) => updateOrderStatus(id, { status: "completed" })}
+          highlightedOrders={highlightedOrders}
+        />
 
-          {statuses.map((status) => (
-            <TabsContent key={status} value={status}>
-              {orders.filter((o) => o.status === status).length === 0 ? (
-                <p className="text-gray-500">No orders in this status.</p>
-              ) : (
-                <div className="space-y-4 mt-4">
-                  {orders
-                    .filter((o) => o.status === status)
-                    .map((order) => (
-                      <div
-                        key={order?._id}
-                        className={`p-4 border rounded shadow flex justify-between items-center transition-all duration-500 ${
-                          highlightedOrders.has(order._id)
-                            ? "bg-blue-100 border-blue-400 border-2 animate-pulse"
-                            : "bg-white"
-                        }`}
-                      >
-                        <div>
-                          <p>
-                            Table: <strong>{order.tableNumber}</strong>
-                            {highlightedOrders.has(order._id) && (
-                              <span className="ml-2 text-xs font-semibold text-blue-600 bg-blue-200 px-2 py-1 rounded">
-                                ITEMS ADDED
-                              </span>
-                            )}
-                          </p>
-                          <div>
-                            Items:{" "}
-                            {order.items.map((i, idx) => (
-                              <div key={idx}>{`${i.name} x${i.quantity}`}</div>
-                            ))}
-                          </div>
-                        </div>
-                        {status === "pending" && (
-                          <Button onClick={() => acceptOrder(order?._id)}>
-                            Accept
-                          </Button>
-                        )}
-                        {status === "accepted" && (
-                          <Button
-                            onClick={() =>
-                              updatedOrderStatus(order?._id, {
-                                status: "completed",
-                              })
-                            }
-                          >
-                            Complete Order
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
+        {/* New order popup (appears when latestOrder exists and status pending) */}
+        <NewOrderPopup
+          order={latestOrder}
+          onAccept={(id) => acceptOrder(id)}
+          onClose={() => setLatestOrder(null)}
+        />
+
+        {/* Tabs for pending / preparing / completed / cancelled */}
+        <OrderTabs
+          orders={orders}
+          onAccept={acceptOrder}
+          onComplete={(id) => updateOrderStatus(id, { status: "completed" })}
+          highlightedOrders={highlightedOrders}
+        />
       </div>
     </ProtectedRoute>
   );

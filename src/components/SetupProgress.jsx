@@ -50,7 +50,7 @@ export default function SetupProgress() {
                   className={`w-8 h-8 flex items-center justify-center rounded-full border-2 mb-2 transition-all duration-300 
                     ${
                       isCompleted || isActive
-                        ? "bg-black dark:bg-white text-white dark:text-black border-black dark:border-white"
+                        ? "bg-black dark:bg-white text-gray-100 dark:text-black border-black dark:border-white"
                         : "border-gray-400 text-gray-500"
                     }`}
                 >
@@ -60,7 +60,7 @@ export default function SetupProgress() {
 
               <span
                 className={`text-xs text-center w-24 ${
-                  isActive ? "text-black dark:text-white font-semibold" : ""
+                  isActive ? "text-black dark:text-gray-100 font-semibold" : ""
                 }`}
               >
                 {step.label}
