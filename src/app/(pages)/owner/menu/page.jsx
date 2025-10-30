@@ -67,6 +67,9 @@ export default function RestaurantDashboard() {
   const [isEditingItem, setIsEditingItem] = useState(false);
 
   const [showWelcome, setShowWelcome] = useState(true);
+  // view mode: grid (default) or list
+  // recently added item id for temporary highlight
+  const [latestAddedId, setLatestAddedId] = useState(null);
 
   // ---------- Keep original image upload handlers unchanged ----------
   const handleImageUpload = async (e) => {
@@ -265,6 +268,13 @@ export default function RestaurantDashboard() {
         available: true,
         categoryId: selectedCatId, // Keep the same category selected for next item
       });
+      setLatestAddedId(newMenuItem._id);
+      // scroll to top so list is visible on mobile
+      try {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (e) {}
+      // clear highlight after a short delay
+      setTimeout(() => setLatestAddedId(null), 4000);
       toast.success("Menu item created!");
       setShowItemModal(false);
     } catch (err) {
@@ -425,7 +435,7 @@ export default function RestaurantDashboard() {
   const ItemCard = memo(({ item, onEdit, onDelete }) => (
     <motion.div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 p-4 flex flex-col">
       {/* Image Section */}
-      <div className="relative w-full h-48 bg-gray-100 rounded-xl overflow-hidden mb-4 flex items-center justify-center">
+      <div className="relative w-full h-40 md:h-48 bg-gray-100 rounded-xl overflow-hidden mb-4 flex items-center justify-center">
         {item.image ? (
           <img
             src={item.image}
@@ -474,13 +484,63 @@ export default function RestaurantDashboard() {
       </div>
     </motion.div>
   ));
+
+  const ListItem = ({ item, onEdit, onDelete, highlighted }) => (
+    <div
+      className={`w-full bg-white rounded-lg p-3 flex items-center gap-3 shadow-sm transition-transform duration-150 ${
+        highlighted ? "ring-2 ring-yellow-300" : ""
+      }`}
+    >
+      <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0">
+        {item.image ? (
+          <img
+            src={item.image}
+            alt={item.name}
+            className="object-cover w-full h-full"
+          />
+        ) : (
+          <div className="text-gray-400 text-sm">No image</div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="font-semibold text-gray-800 truncate">{item.name}</h4>
+          <div className="text-base font-semibold text-gray-800">
+            Rs {item.price}
+          </div>
+        </div>
+        <p className="text-sm text-gray-500 truncate mt-1">
+          {item.description}
+        </p>
+
+        <div className="flex items-center gap-2 mt-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="px-4  border border-gray-400"
+            onClick={() => onEdit(item)}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            className="px-4 bg-gray-800 hover:bg-gray-700 text-gray-100"
+            onClick={() => onDelete(item._id)}
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
   /* ----------------- JSX ----------------- */
   return showWelcome ? (
     <WelcomeScreen path="/owner/menu" />
   ) : (
-    <div className="h-[calc(100vh)] flex p-4 bg-gray-50 rounded-2xl overflow-hidden shadow-lg">
+    <div className="h-screen flex flex-col md:flex-row p-3 md:p-4 bg-gray-50 rounded-2xl overflow-hidden shadow-lg">
       {/* Sidebar */}
-      <aside className="w-80 bg-white border-r p-4 flex flex-col gap-4">
+      <aside className="hidden md:flex w-80 bg-white border-r p-4 flex-col gap-4">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-lg">Categories</h3>
           <Button
@@ -508,68 +568,113 @@ export default function RestaurantDashboard() {
           Tip: create categories first, then add menu items to them.
         </div>
       </aside>
+      {/* Mobile header + category scroller (visible on small screens) */}
+      <div className="md:hidden w-full bg-white rounded-xl p-3 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="text-lg font-semibold">Categories</h2>
+            <p className="hidden sm:block text-xs text-gray-500">
+              Add items to the selected category
+            </p>
+          </div>
+
+          {/* <div className="flex items-center gap-2">
+            <Button
+              onClick={() => {
+                setCatForm({ name: "", description: "" });
+                setShowAddCategoryModal(true);
+              }}
+            >
+              <Plus size={14} />
+            </Button>
+          </div> */}
+        </div>
+
+        {/* horizontal category scroller */}
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar-mobile no-scrollbar">
+          {categories.length === 0 ? (
+            <div className="text-sm text-gray-500">No categories created</div>
+          ) : (
+            categories.map((cat) => (
+              <button
+                key={cat._id}
+                onClick={() => setSelectedCatId(cat._id)}
+                className={`flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium border ${
+                  cat._id === selectedCatId
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-700 border-gray-200"
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
 
       {/* Content */}
-      <main className="flex-1 p-6 overflow-auto">
+      <main className="flex-1 p-2 md:p-6 overflow-auto pb-28 md:pb-6 hide-scrollbar-mobile no-scrollbar">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-semibold">
+            <h2 className="text-2xl font-semibold hidden md:block">
               {selectedCatId
                 ? categories.find((c) => c._id === selectedCatId)?.name ??
                   "Category"
                 : "Select a category"}
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 hidden md:block">
               Add items to the selected category
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              className="text-sm text-gray-500"
-              onClick={async () => {
-                // refresh categories + items (use your existing endpoints)
-                try {
-                  const resCat = await api.get(`/category`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                  });
-                  setCategories(resCat.data.categories || []);
-                  const resMenu = await api.get(`/menu-items`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                  });
-                  setMenuItems(resMenu.data.menuItems || []);
-                  toast.success("Refreshed");
-                } catch {
-                  toast.error("Failed to refresh");
-                }
-              }}
-            >
-              Refresh
-            </button>
+            <div className="hidden md:flex items-center gap-3">
+              <button
+                className="text-sm text-gray-500"
+                onClick={async () => {
+                  try {
+                    const resCat = await api.get(`/category`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    setCategories(resCat.data.categories || []);
+                    const resMenu = await api.get(`/menu-items`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    setMenuItems(resMenu.data.menuItems || []);
+                    toast.success("Refreshed");
+                  } catch {
+                    toast.error("Failed to refresh");
+                  }
+                }}
+              >
+                Refresh
+              </button>
 
-            <Button onClick={openAddItemModal} disabled={!selectedCatId}>
-              <Plus size={14} /> <span className="ml-2">Add Item</span>
-            </Button>
+              <Button onClick={openAddItemModal} disabled={!selectedCatId}>
+                <Plus size={14} /> <span className="ml-2">Add Item</span>
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Items grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {visibleItems.length === 0 ? (
-            <div className="col-span-full text-gray-500">
-              No items in this category yet.
-            </div>
-          ) : (
-            visibleItems.map((it) => (
-              <ItemCard
+        {/* Items (list only) */}
+        {visibleItems.length === 0 ? (
+          <div className="col-span-full text-gray-500">
+            No items in this category yet.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {visibleItems.map((it) => (
+              <ListItem
                 key={it._id}
                 item={it}
                 onEdit={memoizedOpenEditItemModal}
                 onDelete={memoizedHandleMenuDelete}
+                highlighted={it._id === latestAddedId}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-6">
           <button
@@ -577,12 +682,45 @@ export default function RestaurantDashboard() {
               dispatch(updateUser({ hasMenu: true }));
               router.push("/owner/dashboard");
             }}
-            className="absolute bottom-8 right-8 bg-gray-800 text-gray-100 p-4 py-2 rounded-md font-medium hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="hidden md:inline-block absolute bottom-8 right-8 bg-gray-800 text-gray-100 p-4 py-2 rounded-md font-medium hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Continue
           </button>
         </div>
       </main>
+
+      {/* Mobile bottom action bar */}
+      <div className="fixed left-0 right-0 bottom-0 md:hidden bg-white border-t shadow-lg p-3 safe-area-inset-bottom">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setCatForm({ name: "", description: "" });
+              setShowAddCategoryModal(true);
+            }}
+            className="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium"
+          >
+            Add Category
+          </button>
+
+          <button
+            onClick={openAddItemModal}
+            disabled={!selectedCatId}
+            className="flex-1 bg-black text-white rounded-lg p-2 text-sm font-medium disabled:opacity-50"
+          >
+            Add Item
+          </button>
+
+          <button
+            onClick={() => {
+              dispatch(updateUser({ hasMenu: true }));
+              router.push("/owner/dashboard");
+            }}
+            className="flex-1 bg-gray-800 text-white rounded-lg p-2 text-sm font-medium"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
 
       {/* ---------- Add Category Modal ---------- */}
       <AnimatePresence>
@@ -599,12 +737,14 @@ export default function RestaurantDashboard() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
-              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-5"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Add Category</h3>
+                <h3 className="text-base sm:text-lg font-semibold">
+                  Add Category
+                </h3>
                 <button
-                  className="text-gray-500"
+                  className="text-sm sm:text-base text-gray-500"
                   onClick={() => setShowAddCategoryModal(false)}
                 >
                   Close
@@ -614,6 +754,7 @@ export default function RestaurantDashboard() {
               <form onSubmit={handleCategorySubmit} className="space-y-3">
                 <Input
                   placeholder="Category name"
+                  className="text-sm sm:text-base"
                   value={catForm.name}
                   onChange={(e) =>
                     setCatForm((f) => ({ ...f, name: e.target.value }))
@@ -621,7 +762,8 @@ export default function RestaurantDashboard() {
                   required
                 />
                 <Input
-                  placeholder="Short description (optional)"
+                  placeholder="Short description"
+                  className="text-sm sm:text-base"
                   value={catForm.description}
                   onChange={(e) =>
                     setCatForm((f) => ({ ...f, description: e.target.value }))
@@ -630,11 +772,16 @@ export default function RestaurantDashboard() {
                 <div className="flex justify-end gap-2 mt-4">
                   <Button
                     variant="outline"
+                    className="text-sm sm:text-base"
                     onClick={() => setShowAddCategoryModal(false)}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={categoryLoading}>
+                  <Button
+                    type="submit"
+                    disabled={categoryLoading}
+                    className="text-sm sm:text-base"
+                  >
                     {categoryLoading ? "Saving..." : "Create"}
                   </Button>
                 </div>

@@ -161,7 +161,7 @@ export default function OrderStatusPage() {
         </div>
       </header>
 
-      <div className="flex justify-between items-center p-2 pt-6 sm:pt-8">
+      <div className="flex justify-between items-center p-2 pt-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

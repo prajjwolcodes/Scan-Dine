@@ -18,9 +18,10 @@ import {
   Clock,
   LayoutGrid,
   Building2,
+  ChefHat,
 } from "lucide-react";
 import Image from "next/image";
-import food from "@/../public/food.png";
+import restro from "@/../public/restro.jpg";
 import WelcomeScreen from "@/components/WelcomeScreen";
 
 export default function RestaurantDetailsForm() {
@@ -69,8 +70,7 @@ export default function RestaurantDetailsForm() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowWelcome(false);
-    }, 2000); // 👈 match the same duration as in WelcomeScreen
-
+    }, 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -78,37 +78,27 @@ export default function RestaurantDetailsForm() {
     <WelcomeScreen path="/owner/restaurant-details" />
   ) : (
     <motion.div
-      className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900 px-6 py-10"
+      className="p-2 sm:pt-8 sm:px-10 min-h-screen flex items-center justify-center bg-white dark:bg-gray-900 p-1 sm:px-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.6 }}
     >
       <Card className="w-full max-w-5xl flex flex-col md:flex-row overflow-hidden rounded-3xl shadow-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
-        {/* Left Section */}
+        {/* Left Section (Image) */}
         <motion.div
           initial={{ x: -40, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="hidden md:flex flex-col justify-center items-center w-1/2 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 p-8 space-y-5"
+          className="hidden sm:flex md:w-1/2 justify-center items-center p-3 pl-6"
         >
-          <Image
-            src={food}
-            alt="Restaurant Setup"
-            width="full"
-            height="full"
-            className="rounded-2xl shadow-lg"
-          ></Image>
-          {/* <div className="bg-white/80 dark:bg-gray-900/40 p-5 rounded-2xl shadow-md">
-            <UtensilsCrossed className="h-10 w-10 text-gray-800 dark:text-gray-100 mx-auto" />
+          <div className="w-full max-w-xs sm:max-w-sm md:max-w-full">
+            <Image
+              src={restro}
+              alt="Restaurant Setup"
+              className="rounded-2xl shadow-lg w-full h-auto object-cover"
+              priority
+            />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 text-center">
-            Welcome to{" "}
-            <span className="text-black dark:text-gray-100">Scan & Dine</span>
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 text-center max-w-sm">
-            Let’s set up your restaurant and start serving your customers in
-            style 🍽️
-          </p> */}
         </motion.div>
 
         {/* Right Section (Form) */}
@@ -117,10 +107,11 @@ export default function RestaurantDetailsForm() {
           initial={{ x: 40, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="w-full md:w-1/2 p-8 md:p-10 space-y-6"
+          className="w-full md:w-1/2 px-6 sm:p-8 md:p-10 space-y-6"
         >
           <div className="text-center md:text-left space-y-1">
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+              <ChefHat className="inline-block mr-2" />
               Restaurant Details
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -128,7 +119,7 @@ export default function RestaurantDetailsForm() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-5 sm:gap-6">
             {[
               {
                 id: "name",
@@ -163,13 +154,15 @@ export default function RestaurantDetailsForm() {
                 transition={{ delay: 0.05 }}
                 className="space-y-2"
               >
-                <Label htmlFor={id}>{label}</Label>
+                <Label htmlFor={id} className="text-sm font-medium">
+                  {label}
+                </Label>
                 <div className="mt-1 relative">
-                  <Icon className="absolute left-3 top-2 text-gray-400 h-5 w-5" />
+                  <Icon className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
                   <Input
                     id={id}
                     name={id}
-                    className="pl-10 rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition"
+                    className="pl-10 rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition w-full text-sm sm:text-base"
                     value={form[id]}
                     onChange={handleChange}
                     {...rest}
@@ -180,7 +173,9 @@ export default function RestaurantDetailsForm() {
 
             {/* Table Count */}
             <div className="space-y-1">
-              <Label htmlFor="tableCount">Number of Tables</Label>
+              <Label htmlFor="tableCount" className="text-sm font-medium">
+                Number of Tables
+              </Label>
               <div className="relative">
                 <LayoutGrid className="absolute left-3 top-2.5 text-gray-400 h-5 w-5" />
                 <Input
@@ -188,7 +183,7 @@ export default function RestaurantDetailsForm() {
                   id="tableCount"
                   name="tableCount"
                   min="1"
-                  className="pl-10 rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition"
+                  className="pl-10 rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition w-full text-sm sm:text-base"
                   value={form.tableCount}
                   onChange={handleChange}
                 />
@@ -196,10 +191,10 @@ export default function RestaurantDetailsForm() {
             </div>
 
             {/* Timings */}
-            <div className="flex gap-3">
-              {["openingTime", "closingTime"].map(({ field, index }) => (
-                <div key={field} className="w-1/2 space-y-1">
-                  <Label htmlFor={field}>
+            <div className="flex flex-col sm:flex-row gap-3">
+              {["openingTime", "closingTime"].map((field, index) => (
+                <div key={index} className="w-full sm:w-1/2 space-y-1">
+                  <Label htmlFor={field} className="text-sm font-medium">
                     {field === "openingTime" ? "Opening Time" : "Closing Time"}
                   </Label>
                   <div className="relative">
@@ -208,7 +203,7 @@ export default function RestaurantDetailsForm() {
                       type="time"
                       id={field}
                       name={field}
-                      className="pl-10 rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition"
+                      className="pl-10 rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition w-full text-sm sm:text-base"
                       value={form[field]}
                       onChange={handleChange}
                     />

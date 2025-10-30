@@ -12,6 +12,17 @@
   scrollbar-width: none; /* Firefox */
 }
 
+/* Mobile-only scrollbar hide utility */
+@media (max-width: 767px) {
+  .hide-scrollbar-mobile {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .hide-scrollbar-mobile::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

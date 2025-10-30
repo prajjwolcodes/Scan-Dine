@@ -47,11 +47,11 @@ const ItemModal = ({
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[18px] font-semibold">
+              <h3 className="text-base sm:text-[18px] font-semibold">
                 {isEditingItem ? "Edit Item" : "Add Menu Item"}
               </h3>
               <button
-                className="text-gray-500 cursor-pointer"
+                className="text-sm sm:text-base text-gray-500 cursor-pointer"
                 onClick={() => setShowItemModal(false)}
               >
                 Close
@@ -65,6 +65,7 @@ const ItemModal = ({
                 <Label>Item name</Label>
                 <Input
                   value={isEditingItem ? editMenuForm.name : menuForm.name}
+                  className="text-sm sm:text-base"
                   onChange={(e) => {
                     if (isEditingItem)
                       setEditMenuForm((f) => ({ ...f, name: e.target.value }));
@@ -78,6 +79,7 @@ const ItemModal = ({
                 <Label>Price</Label>
                 <Input
                   type="number"
+                  className="text-sm sm:text-base"
                   value={isEditingItem ? editMenuForm.price : menuForm.price}
                   onChange={(e) => {
                     if (isEditingItem)
@@ -108,7 +110,7 @@ const ItemModal = ({
                         categoryId: e.target.value,
                       }));
                   }}
-                  className="w-full border rounded-md p-2"
+                  className="w-full border rounded-md p-2 text-sm sm:text-base"
                 >
                   <option value="">Select category</option>
                   {categories.map((c) => (
@@ -122,7 +124,8 @@ const ItemModal = ({
               {/* Description */}
               <div className="sm:col-span-2 flex flex-col gap-2">
                 <Label>Description</Label>
-                <Textarea
+                <Input
+                  className="text-sm sm:text-base"
                   value={
                     isEditingItem
                       ? editMenuForm.description
@@ -147,6 +150,7 @@ const ItemModal = ({
               <div className="flex flex-col gap-2">
                 <Label>Image</Label>
                 <Input
+                  className="text-sm sm:text-base"
                   type="file"
                   accept="image/*"
                   onChange={(e) => {

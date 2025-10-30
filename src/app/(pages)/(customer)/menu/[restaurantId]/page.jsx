@@ -185,6 +185,11 @@ export default function RestaurantMenuPage() {
     if (!containerRef.current) return;
     const scrollTop = containerRef.current.scrollTop;
     let current = activeCat;
+    // If user has explicitly chosen the "all" tab, don't auto-switch to
+    // individual categories while scrolling. This prevents jumping from
+    // "All" -> first category when the page scrolls past the header.
+    if (activeCat === "all") return;
+
     for (const c of categories) {
       const s = sectionRefs.current[c._id];
       if (!s) continue;
@@ -283,14 +288,14 @@ export default function RestaurantMenuPage() {
           alt={item.name}
           className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
         />
-        <div className="ml-4 flex-1 flex-col gap-1 min-w-0 ">
-          <div className="flex justify-between items-center">
+        <div className="ml-4 flex-1 flex-col gap-2 min-w-0 ">
+          <div className="flex gap-1 justify-between items-center">
             <h3 className="font-medium text-gray-800 truncate">{item.name}</h3>
             <p className="mr-2 text-base font-semibold text-gray-900">
               Rs. {item.price}
             </p>
           </div>
-          <p className="text-[13px] text-gray-500 line-clamp-2">
+          <p className="text-xs text-gray-500 line-clamp-2">
             {item.description}
           </p>
           <div className="flex justify-between items-end mt-1">
@@ -361,12 +366,45 @@ export default function RestaurantMenuPage() {
               <div className="py-10 text-center text-gray-500">
                 No items found matching "{query}".
               </div>
+            ) : // If 'All' is active, render a single unified grid that shows
+            // all items together (two columns on larger screens). This
+            // prevents per-category row grouping and allows items from
+            // different categories to sit side-by-side.
+            activeCat === "all" ? (
+              <section
+                key="all"
+                ref={(el) => (sectionRefs.current["all"] = el)}
+                id={`section-all`}
+              >
+                <AnimatePresence>
+                  <div
+                    className={
+                      view === "grid"
+                        ? "w-full grid grid-cols-1 sm:grid-cols-2 gap-1"
+                        : "space-y-1"
+                    }
+                  >
+                    {visibleItems.length === 0 ? (
+                      <div className="text-gray-500 col-span-full py-4">
+                        No items found matching your search/filters.
+                      </div>
+                    ) : (
+                      visibleItems.map((item) =>
+                        view === "grid" ? (
+                          <MenuItemCardGrid key={item._id} item={item} />
+                        ) : (
+                          <MenuItemCardList key={item._id} item={item} />
+                        )
+                      )
+                    )}
+                  </div>
+                </AnimatePresence>
+              </section>
             ) : (
               // grouped by category presentation: show category header + items
               categories
                 .filter((c) => c)
                 .map((cat) => {
-                  // In "All" view, show all categories and apply search/availability filtering to their lists
                   // In single category view, only show that category.
 
                   if (cat._id === "all") return null;
@@ -380,16 +418,11 @@ export default function RestaurantMenuPage() {
                     );
                   });
 
-                  const isAllView = activeCat === "all";
-                  const shouldRenderSection =
-                    isAllView || activeCat === cat._id;
+                  const shouldRenderSection = activeCat === cat._id;
 
                   if (!shouldRenderSection) return null;
 
-                  // Don't render "All" section in single-category view, nor empty categories in "All" view
-                  // if (!isAllView && cat._id === "all") return null;
-
-                  // In "All" view, skip categories with no items after filtering
+                  // In single-category view, skip if empty after filtering
                   if (listForCat.length === 0) return null;
 
                   return (
@@ -414,7 +447,7 @@ export default function RestaurantMenuPage() {
                         <div
                           className={
                             view === "grid"
-                              ? "w-full grid grid-cols-1 sm:grid-cols-2 gap-2"
+                              ? "w-full grid grid-cols-1 sm:grid-cols-2 gap-1"
                               : "space-y-1"
                           }
                         >

@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/axios";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Armchair,
   ChartNoAxesGantt,
   ChefHat,
   Download,
@@ -30,7 +31,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useCallback, memo } from "react";
+import { useEffect, useMemo, useState, useCallback, memo, useRef } from "react";
 import { toast } from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -43,100 +44,141 @@ const NAV = [
 ];
 
 // Extracted RestaurantEditModal outside the component to prevent re-creation
+// The modal now manages its own internal form state to avoid causing parent re-renders
+// on each keystroke (prevents card flicker and focus loss).
 const RestaurantEditModal = memo(
-  ({ isOpen, onClose, editForm, onSave, savingInfo, handlers }) => (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/30"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl p-6"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Edit Restaurant Info</h3>
-              <button
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-                onClick={onClose}
-              >
-                Close
-              </button>
-            </div>
+  ({ isOpen, onClose, initialData, onSave, savingInfo }) => {
+    const [localForm, setLocalForm] = useState(() => ({
+      name: "",
+      address: "",
+      phone: "",
+      email: "",
+      tableCount: 0,
+      openingTime: "",
+      closingTime: "",
+    }));
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input
-                  value={editForm.name || ""}
-                  onChange={handlers.handleNameChange}
-                />
+    // sync when initialData changes (e.g., when modal opens with new restaurant)
+    useEffect(() => {
+      if (initialData) {
+        setLocalForm({
+          name: initialData.name || "",
+          address: initialData.address || "",
+          phone: initialData.phone || "",
+          email: initialData.email || "",
+          tableCount: initialData.tableCount ?? 0,
+          openingTime: initialData.openingTime || "",
+          closingTime: initialData.closingTime || "",
+        });
+      }
+    }, [initialData]);
 
-                <Label>Address</Label>
-                <Input
-                  value={editForm.address || ""}
-                  onChange={handlers.handleAddressChange}
-                />
+    const handleChange = (field) => (e) => {
+      const value =
+        field === "tableCount" ? Number(e.target.value) : e.target.value;
+      setLocalForm((p) => ({ ...p, [field]: value }));
+    };
 
-                <Label>Phone</Label>
-                <Input
-                  value={editForm.phone || ""}
-                  onChange={handlers.handlePhoneChange}
-                />
+    const handleSave = async () => {
+      if (!onSave) return;
+      await onSave(localForm);
+      onClose?.();
+    };
+
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 bg-black/30"
+              onClick={onClose}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Edit Restaurant Info</h3>
+                <button
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                  onClick={onClose}
+                >
+                  Close
+                </button>
               </div>
 
-              <div className="space-y-2">
-                <Label>Email</Label>
-                <Input
-                  value={editForm.email || ""}
-                  onChange={handlers.handleEmailChange}
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={localForm.name}
+                    onChange={handleChange("name")}
+                  />
 
-                <Label>Opening Time</Label>
-                <Input
-                  type="time"
-                  value={editForm.openingTime || ""}
-                  onChange={handlers.handleOpeningTimeChange}
-                />
+                  <Label>Address</Label>
+                  <Input
+                    value={localForm.address}
+                    onChange={handleChange("address")}
+                  />
 
-                <Label>Closing Time</Label>
-                <Input
-                  type="time"
-                  value={editForm.closingTime || ""}
-                  onChange={handlers.handleClosingTimeChange}
-                />
+                  <Label>Phone</Label>
+                  <Input
+                    value={localForm.phone}
+                    onChange={handleChange("phone")}
+                  />
+                </div>
 
-                <Label>Table Count</Label>
-                <Input
-                  type="number"
-                  value={editForm.tableCount || 0}
-                  onChange={handlers.handleTableCountChange}
-                />
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input
+                    value={localForm.email}
+                    onChange={handleChange("email")}
+                  />
+
+                  <Label>Opening Time</Label>
+                  <Input
+                    type="time"
+                    value={localForm.openingTime}
+                    onChange={handleChange("openingTime")}
+                  />
+
+                  <Label>Closing Time</Label>
+                  <Input
+                    type="time"
+                    value={localForm.closingTime}
+                    onChange={handleChange("closingTime")}
+                  />
+
+                  <Label>Table Count</Label>
+                  <Input
+                    type="number"
+                    value={localForm.tableCount}
+                    onChange={handleChange("tableCount")}
+                  />
+                </div>
+
+                <div className="lg:col-span-2 flex justify-end gap-2 mt-2">
+                  <Button variant="outline" onClick={onClose} type="button">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={savingInfo}>
+                    {savingInfo ? "Saving..." : "Save Changes"}
+                  </Button>
+                </div>
               </div>
-
-              <div className="lg:col-span-2 flex justify-end gap-2 mt-2">
-                <Button variant="outline" onClick={onClose} type="button">
-                  Cancel
-                </Button>
-                <Button onClick={onSave} disabled={savingInfo}>
-                  {savingInfo ? "Saving..." : "Save Changes"}
-                </Button>
-              </div>
-            </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+        )}
+      </AnimatePresence>
+    );
+  }
 );
 
 RestaurantEditModal.displayName = "RestaurantEditModal";
@@ -148,15 +190,6 @@ export default function OwnerDashboard() {
 
   // original states (kept)
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: "",
-    address: "",
-    phone: "",
-    email: "",
-    tableCount: 0,
-    openingTime: "",
-    closingTime: "",
-  });
   const [qrUrl, setQrUrl] = useState(null);
 
   const [categories, setCategories] = useState([]);
@@ -212,6 +245,10 @@ export default function OwnerDashboard() {
   const [itemSearch, setItemSearch] = useState("");
   const [itemCategoryFilter, setItemCategoryFilter] = useState("");
 
+  // refs for search inputs to preserve focus across re-renders
+  const categoryInputRef = useRef(null);
+  const itemInputRef = useRef(null);
+
   const [restaurant, setRestaurant] = useState(null);
 
   // keep original image handlers (unchanged)
@@ -248,118 +285,36 @@ export default function OwnerDashboard() {
 
   const openEdit = () => {
     if (!restaurant) return;
-    setEditForm({
-      name: restaurant.name || "",
-      address: restaurant.address || "",
-      phone: restaurant.phone || "",
-      email: restaurant.email || "",
-      tableCount: restaurant.tableCount ?? 0,
-      openingTime: restaurant.openingTime || "",
-      closingTime: restaurant.closingTime || "",
-    });
     setIsEditOpen(true);
   };
 
   // save edit (PUT /restaurant/:id) - memoized to prevent re-creation
-  const saveRestaurant = useCallback(async () => {
-    if (!restaurant?._id) return;
-    setSavingInfo(true);
-    try {
-      const res = await api.put(`/restaurant/${restaurant._id}`, editForm, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setRestaurant(res.data.restaurant || { ...restaurant, ...editForm });
-      toast.success("Restaurant info updated");
-      setIsEditOpen(false);
-    } catch (err) {
-      toast.error(
-        err?.response?.data?.message || "Failed to update restaurant"
-      );
-    } finally {
-      setSavingInfo(false);
-    }
-  }, [restaurant, token]);
-
-  // Memoized handlers to prevent input focus loss
-  const handleEditFormChange = useCallback((field, value) => {
-    setEditForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const handleNameChange = useCallback(
-    (e) => {
-      handleEditFormChange("name", e.target.value);
+  const saveRestaurant = useCallback(
+    async (data) => {
+      if (!restaurant?._id) return;
+      setSavingInfo(true);
+      try {
+        const res = await api.put(`/restaurant/${restaurant._id}`, data, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRestaurant(res.data.restaurant || { ...restaurant, ...data });
+        toast.success("Restaurant info updated");
+        setIsEditOpen(false);
+      } catch (err) {
+        toast.error(
+          err?.response?.data?.message || "Failed to update restaurant"
+        );
+      } finally {
+        setSavingInfo(false);
+      }
     },
-    [handleEditFormChange]
-  );
-
-  const handleAddressChange = useCallback(
-    (e) => {
-      handleEditFormChange("address", e.target.value);
-    },
-    [handleEditFormChange]
-  );
-
-  const handlePhoneChange = useCallback(
-    (e) => {
-      handleEditFormChange("phone", e.target.value);
-    },
-    [handleEditFormChange]
-  );
-
-  const handleEmailChange = useCallback(
-    (e) => {
-      handleEditFormChange("email", e.target.value);
-    },
-    [handleEditFormChange]
-  );
-
-  const handleOpeningTimeChange = useCallback(
-    (e) => {
-      handleEditFormChange("openingTime", e.target.value);
-    },
-    [handleEditFormChange]
-  );
-
-  const handleClosingTimeChange = useCallback(
-    (e) => {
-      handleEditFormChange("closingTime", e.target.value);
-    },
-    [handleEditFormChange]
-  );
-
-  const handleTableCountChange = useCallback(
-    (e) => {
-      handleEditFormChange("tableCount", Number(e.target.value));
-    },
-    [handleEditFormChange]
+    [restaurant, token]
   );
 
   // Memoized close handler to prevent re-creating on every render
   const handleCloseEditModal = useCallback(() => {
     setIsEditOpen(false);
   }, []);
-
-  // Memoized handlers object to prevent re-creating on every render
-  const editHandlers = useMemo(
-    () => ({
-      handleNameChange,
-      handleAddressChange,
-      handlePhoneChange,
-      handleEmailChange,
-      handleOpeningTimeChange,
-      handleClosingTimeChange,
-      handleTableCountChange,
-    }),
-    [
-      handleNameChange,
-      handleAddressChange,
-      handlePhoneChange,
-      handleEmailChange,
-      handleOpeningTimeChange,
-      handleClosingTimeChange,
-      handleTableCountChange,
-    ]
-  );
 
   // computed booking info
   const bookedTables = useMemo(() => {
@@ -613,13 +568,22 @@ export default function OwnerDashboard() {
 
   // ---------- small presentational components ----------
   const Sidebar = () => (
-    <aside className="w-64 bg-white border-r min-h-screen hidden lg:flex flex-col">
-      <div className="mb-6">
-        <div className="text-xl font-bold">
-          {restaurant?.name || "Your Restaurant"}
-        </div>
-        <div className="text-base text-gray-500 mt-1">
-          {restaurant?.address}
+    <aside className="w-64 pr-6 bg-white border-r min-h-screen hidden lg:flex flex-col">
+      <div className="flex gap-4">
+        <Image
+          src={restaurant?.logo || "/logo.png"}
+          alt={restaurant?.name || "Restaurant"}
+          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border"
+          width={48}
+          height={48}
+        />
+        <div className="mb-6">
+          <div className="text-xl font-bold">
+            {restaurant?.name || "Your Restaurant"}
+          </div>
+          <div className="text-base text-gray-500 mt-1">
+            {restaurant?.address}
+          </div>
         </div>
       </div>
 
@@ -786,11 +750,35 @@ export default function OwnerDashboard() {
 
                 <div className="bg-gray-50 p-4 rounded-md flex flex-col items-start gap-3">
                   <div className="text-base text-gray-500">Tables</div>
-                  <div className="text-2xl font-bold">
-                    {restaurant.tableCount ?? 0}
+                  <div className="flex flex-wrap gap-2 my-2">
+                    {Array.from({ length: restaurant.tableCount ?? 0 }).map(
+                      (_, index) => (
+                        <div
+                          key={index}
+                          className={`w-8 h-8 rounded flex items-center justify-center ${
+                            index < bookedTables
+                              ? "bg-red-500 text-white"
+                              : "bg-green-500 text-white"
+                          }`}
+                        >
+                          <Armchair className="h-5 ww-5" />
+                        </div>
+                      )
+                    )}
                   </div>
-                  <div className="text-sm text-gray-500">
-                    Booked: {bookedTables}
+                  <div className="flex gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-red-500"></div>
+                      <span className="text-gray-500">
+                        Booked: {bookedTables}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-green-500"></div>
+                      <span className="text-gray-500">
+                        Available: {(restaurant.tableCount ?? 0) - bookedTables}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -806,29 +794,35 @@ export default function OwnerDashboard() {
       <RestaurantEditModal
         isOpen={isEditOpen}
         onClose={handleCloseEditModal}
-        editForm={editForm}
+        initialData={restaurant}
         onSave={saveRestaurant}
         savingInfo={savingInfo}
-        handlers={editHandlers}
       />
     </>
   );
 
   const CategoriesView = () => (
     <>
-      <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4 p-2 sm:p-4">
-        <h2 className="text-xl font-semibold">Categories</h2>
-        <p className="text-sm text-gray-500">
-          Create and manage categories for your menu.
-        </p>
+      <div className="flex justify-between gap-2  mb-4">
+        <div className="flex flex-col mb-4 sm:mb-0">
+          <h2 className="text-xl font-semibold">Categories</h2>
+          <p className="text-sm text-gray-500">
+            Create and manage categories for your menu.
+          </p>
+        </div>
 
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <Input
+              ref={categoryInputRef}
               placeholder="Search categories..."
               value={categorySearch}
-              onChange={(e) => setCategorySearch(e.target.value)}
+              onChange={(e) => {
+                setCategorySearch(e.target.value);
+                // ensure cursor stays focused after state update
+                requestAnimationFrame(() => categoryInputRef.current?.focus());
+              }}
               className="text:sm pl-10 sm:w-98"
             />
           </div>
@@ -907,9 +901,13 @@ export default function OwnerDashboard() {
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <Input
+              ref={itemInputRef}
               placeholder="Search items..."
               value={itemSearch}
-              onChange={(e) => setItemSearch(e.target.value)}
+              onChange={(e) => {
+                setItemSearch(e.target.value);
+                requestAnimationFrame(() => itemInputRef.current?.focus());
+              }}
               className="pl-10 w-92 "
             />
           </div>
@@ -1153,7 +1151,7 @@ export default function OwnerDashboard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="min-h-screen"
+      className="p-2 sm:pt-8 sm:px-8 min-h-screen"
     >
       {/* Mobile topbar */}
       <TopbarMobile />
