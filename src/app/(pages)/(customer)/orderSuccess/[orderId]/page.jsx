@@ -53,7 +53,7 @@ export default function OrderStatusPage() {
     };
 
     fetchOrder();
-    socket = io("http://localhost:8000");
+    socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000");
     socket.emit("joinOrder", { orderId });
 
     socket.on("order:update", (updatedOrder) => {

@@ -54,7 +54,8 @@ export default function ChefDashboard() {
 
     // connect socket
     socket = io(
-      /* you can replace with process.env.SOCKET_URL */ "http://localhost:8000",
+      /* you can replace with process.env.SOCKET_URL */ process.env
+        .NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000",
       {
         transports: ["websocket"],
       }

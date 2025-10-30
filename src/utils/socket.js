@@ -17,7 +17,9 @@ export default function SocketComponent() {
   useEffect(() => {
     // Only connect if the socket hasn't been initialized yet
     if (!socket) {
-      socket = io("http://localhost:8000");
+      socket = io(
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+      );
     }
 
     // Event listeners should be added only once
