@@ -100,7 +100,7 @@ async function initiateGatewayPayment(
         return_url: SUCCESS_URL,
         failure_url: FAILURE_URL,
 
-        website_url: process.env.APP_URL_DEV,
+        website_url: process.env.FRONT_END_APP_URL,
         purchase_order_id: order._id,
         purchase_order_name: `Order ${order._id}`,
       },

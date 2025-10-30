@@ -20,7 +20,7 @@ export const generateRestaurantQR = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    const menuUrl = `${process.env.APP_URL_DEV}/menu/${restaurant._id}`;
+    const menuUrl = `${process.env.FRONT_END_APP_URL}/menu/${restaurant._id}`;
     const qrCodeDataUrl = await generateQR(menuUrl);
 
     // Save QR code in DB
