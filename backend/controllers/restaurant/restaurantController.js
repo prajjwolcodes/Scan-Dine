@@ -17,6 +17,7 @@ export const createRestaurant = async (req, res) => {
       tableCount,
       openingTime,
       closingTime,
+      logo,
     } = req.body;
 
     const existingRestaurant = await Restaurant.findOne({
@@ -30,6 +31,7 @@ export const createRestaurant = async (req, res) => {
       address,
       phone,
       email,
+      logo,
       tableCount,
       openingTime,
       closingTime,
@@ -108,11 +110,21 @@ export const updateRestaurant = async (req, res) => {
       tableCount,
       openingTime,
       closingTime,
+      logo,
     } = req.body;
 
     const updatedRestaurant = await Restaurant.findByIdAndUpdate(
       id,
-      { name, address, phone, email, tableCount, openingTime, closingTime },
+      {
+        name,
+        address,
+        phone,
+        email,
+        tableCount,
+        openingTime,
+        closingTime,
+        ...(logo ? { logo } : {}),
+      },
       { new: true, runValidators: true }
     );
 

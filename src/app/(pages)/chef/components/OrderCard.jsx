@@ -73,11 +73,11 @@ export default function OrderCard({
             {order.items.map((it, idx) => (
               <div className="text-sm" key={idx}>
                 {it.name} × {it.quantity}
-                <div className="mt-3 text-sm text-gray-500">
-                  From : {order.customerName || "—"}
-                </div>
               </div>
             ))}
+            <div className="mt-3 text-sm text-gray-500">
+              From : {order.customerName || "—"}
+            </div>
           </div>
           <div className="flex gap-2 mt-4">
             {isPending && (

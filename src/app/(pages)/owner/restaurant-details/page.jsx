@@ -35,13 +35,41 @@ export default function RestaurantDetailsForm() {
     phone: "",
     email: "",
     tableCount: 1,
+    logo: "",
     openingTime: "",
     closingTime: "",
   });
   const [loading, setLoading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", process.env.NEXT_PUBLIC_UPLOAD_PRESET);
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUD_NAME}/image/upload`,
+        { method: "POST", body: formData }
+      );
+      const data = await res.json();
+      if (data.secure_url) {
+        setForm((f) => ({ ...f, logo: data.secure_url }));
+        toast.success("Logo uploaded!");
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (err) {
+      toast.error("Logo upload failed");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -152,7 +180,7 @@ export default function RestaurantDetailsForm() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="space-y-2"
+                className="space-y-0"
               >
                 <Label htmlFor={id} className="text-sm font-medium">
                   {label}
@@ -162,7 +190,7 @@ export default function RestaurantDetailsForm() {
                   <Input
                     id={id}
                     name={id}
-                    className="pl-10 rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition w-full text-sm sm:text-base"
+                    className="pl-10 py-4 rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition w-full text-sm sm:text-base"
                     value={form[id]}
                     onChange={handleChange}
                     {...rest}
@@ -170,6 +198,31 @@ export default function RestaurantDetailsForm() {
                 </div>
               </motion.div>
             ))}
+
+            {/* Logo upload (optional) */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 }}
+              className="space-y-2"
+            >
+              <Label htmlFor="logo" className="text-sm font-medium">
+                Logo (optional)
+              </Label>
+              <div className="mt-1 relative">
+                <Input
+                  id="logo"
+                  name="logo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="rounded-xl border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-gray-800 dark:focus:ring-gray-200 transition w-full text-sm sm:text-base"
+                />
+                {uploadingLogo && (
+                  <p className="text-sm text-gray-500 mt-1">Uploading...</p>
+                )}
+              </div>
+            </motion.div>
 
             {/* Table Count */}
             <div className="space-y-1">

@@ -188,6 +188,7 @@ const ItemModal = ({
                     const fakeEvent = { preventDefault: () => {} };
                     handleMenuSubmit(fakeEvent);
                   }}
+                  disabled={menuLoading || uploading}
                 >
                   {menuLoading ? "Saving..." : "Add Item"}
                 </Button>

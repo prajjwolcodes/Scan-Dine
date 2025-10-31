@@ -56,6 +56,7 @@ const RestaurantEditModal = memo(
       tableCount: 0,
       openingTime: "",
       closingTime: "",
+      logo: "",
     }));
 
     // sync when initialData changes (e.g., when modal opens with new restaurant)
@@ -69,9 +70,36 @@ const RestaurantEditModal = memo(
           tableCount: initialData.tableCount ?? 0,
           openingTime: initialData.openingTime || "",
           closingTime: initialData.closingTime || "",
+          logo: initialData.logo || "",
         });
       }
     }, [initialData]);
+
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+
+    const handleLogoUpload = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", process.env.NEXT_PUBLIC_UPLOAD_PRESET);
+      try {
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUD_NAME}/image/upload`,
+          { method: "POST", body: formData }
+        );
+        const data = await res.json();
+        if (data.secure_url) {
+          setLocalForm((p) => ({ ...p, logo: data.secure_url }));
+          toast.success("Logo uploaded!");
+        } else throw new Error("Upload failed");
+      } catch (err) {
+        toast.error("Logo upload failed");
+      } finally {
+        setUploadingLogo(false);
+      }
+    };
 
     const handleChange = (field) => (e) => {
       const value =
@@ -115,6 +143,25 @@ const RestaurantEditModal = memo(
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Logo (optional)</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    disabled={uploadingLogo}
+                  />
+                  {uploadingLogo && (
+                    <p className="text-sm text-gray-500">Uploading...</p>
+                  )}
+                  {(localForm.logo || initialData?.logo) && (
+                    <img
+                      src={localForm.logo || initialData.logo}
+                      alt="logo-preview"
+                      className="w-24 h-24 object-cover rounded-md mt-2"
+                    />
+                  )}
+                </div>
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input
@@ -1033,7 +1080,7 @@ export default function OwnerDashboard() {
 
       <div className="grid grid-cols-1  gap-4">
         {chefs.length === 0 ? (
-          <div className="text-gray-500">No chefs yet.</div>
+          <div className="px-4 text-gray-500">No chefs yet.</div>
         ) : (
           chefs.map((c, index) => (
             <div

@@ -577,17 +577,6 @@ export default function RestaurantDashboard() {
               Add items to the selected category
             </p>
           </div>
-
-          {/* <div className="flex items-center gap-2">
-            <Button
-              onClick={() => {
-                setCatForm({ name: "", description: "" });
-                setShowAddCategoryModal(true);
-              }}
-            >
-              <Plus size={14} />
-            </Button>
-          </div> */}
         </div>
 
         {/* horizontal category scroller */}
@@ -629,27 +618,6 @@ export default function RestaurantDashboard() {
 
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-3">
-              <button
-                className="text-sm text-gray-500"
-                onClick={async () => {
-                  try {
-                    const resCat = await api.get(`/category`, {
-                      headers: { Authorization: `Bearer ${token}` },
-                    });
-                    setCategories(resCat.data.categories || []);
-                    const resMenu = await api.get(`/menu-items`, {
-                      headers: { Authorization: `Bearer ${token}` },
-                    });
-                    setMenuItems(resMenu.data.menuItems || []);
-                    toast.success("Refreshed");
-                  } catch {
-                    toast.error("Failed to refresh");
-                  }
-                }}
-              >
-                Refresh
-              </button>
-
               <Button onClick={openAddItemModal} disabled={!selectedCatId}>
                 <Plus size={14} /> <span className="ml-2">Add Item</span>
               </Button>

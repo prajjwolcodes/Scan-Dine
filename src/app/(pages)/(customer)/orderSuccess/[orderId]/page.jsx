@@ -59,14 +59,48 @@ export default function OrderStatusPage() {
     socket.on("order:update", (updatedOrder) => {
       toast.success(`Order status updated to ${updatedOrder.status}`);
       if (updatedOrder._id === orderId) {
-        setOrder(updatedOrder);
-        if (
-          updatedOrder.status === "completed" &&
-          !getGuestOrderCompletedAt()
-        ) {
-          markGuestOrderCompleted(orderId);
-          setRemainingTime(15 * 60);
-        }
+        // Some server emits send the order without populated `restaurant`.
+        // Preserve existing populated restaurant data or re-fetch populated order
+        (async () => {
+          try {
+            let finalOrder = updatedOrder;
+            const hasPopulatedRestaurant =
+              updatedOrder.restaurant &&
+              typeof updatedOrder.restaurant === "object" &&
+              (updatedOrder.restaurant.name || updatedOrder.restaurant.address);
+
+            if (!hasPopulatedRestaurant) {
+              // try to preserve the current restaurant from state
+              if (order && order.restaurant) {
+                finalOrder = { ...updatedOrder, restaurant: order.restaurant };
+              } else {
+                // fallback: re-fetch populated order from server
+                const res = await api.get(`/orders/order/${orderId}`);
+                finalOrder = res.data.order || updatedOrder;
+              }
+            }
+
+            setOrder(finalOrder);
+
+            if (
+              finalOrder.status === "completed" &&
+              !getGuestOrderCompletedAt()
+            ) {
+              markGuestOrderCompleted(orderId);
+              setRemainingTime(15 * 60);
+            }
+          } catch (err) {
+            // if anything fails, still set the raw updatedOrder to keep status in sync
+            setOrder(updatedOrder);
+            if (
+              updatedOrder.status === "completed" &&
+              !getGuestOrderCompletedAt()
+            ) {
+              markGuestOrderCompleted(orderId);
+              setRemainingTime(15 * 60);
+            }
+          }
+        })();
       }
     });
 
