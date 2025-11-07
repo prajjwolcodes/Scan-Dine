@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,17 @@ export default function LoginPage() {
       toast.error(error.message || "Login failed");
     }
   };
+
+  useEffect(() => {
+    if (!user && !token) {
+      toast.loading(
+        "The backend is hosted on render, it may take a while to wake up the server for the first request."
+      );
+    }
+    setTimeout(() => {
+      toast.dismiss();
+    }, 4000);
+  }, [user, token]);
 
   return (
     <PublicRoute redirectTo="/owner/dashboard">
