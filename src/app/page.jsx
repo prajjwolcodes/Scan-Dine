@@ -81,15 +81,15 @@ export default function ScanAndDineLanding() {
   const isClient = typeof window !== "undefined";
 
   return (
-    <div className="min-h-screen bg-gray-200">
+    <div className="min-h-screen bg-gray-200 overflow-x-hidden">
       {/* Header */}
       <header
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
           scrolled ? "bg-[#1E1E1E] shadow-lg" : "bg-none"
         }`}
       >
-        <nav className="max-w-7xl mx-auto py-4">
-          <div className="flex items-center px-6 sm:px-0 justify-between">
+        <nav className="max-w-7xl mx-auto py-4 px-6 sm:px-6 lg:px-0">
+          <div className="flex items-center justify-between">
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -111,47 +111,49 @@ export default function ScanAndDineLanding() {
                 </motion.button>
               ))}
 
-              <Link href="/auth/login">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  className="bg-white text-black cursor-pointer px-6 py-2 rounded-full font-semibold hover:bg-gray-200 transition-all"
-                >
-                  Login
-                </motion.button>
-              </Link>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                className="bg-white text-black z-50 cursor-pointer px-6 py-2 rounded-full font-semibold hover:bg-gray-200 transition-all"
+              >
+                <Link href="/auth/login">Login</Link>
+              </motion.button>
             </div>
 
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden text-white"
+              className="md:hidden text-white p-2"
+              aria-label="Toggle menu"
             >
               {isMenuOpen ? (
                 <X className="w-6 h-6" />
               ) : (
-                <Menu className="w-6 h-6 mr-6" />
+                <Menu className="w-6 h-6" />
               )}
             </button>
           </div>
 
           {isMenuOpen && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
+              initial={{ height: 0, opacity: 1 }}
               animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="md:hidden mt-4 pb-4 space-y-4"
+              exit={{ height: 0, opacity: 1 }}
+              className="md:hidden mt-4 pb-4 space-y-4 bg-[#1E1E1E] flex flex-col items-start px-4 rounded-b-lg shadow-sm w-full"
             >
               {["features", "about", "contact"].map((item) => (
                 <button
                   key={item}
                   onClick={() => scrollToSection(item)}
-                  className="block text-white hover:text-gray-300 font-medium"
+                  className="w-full text-left text-white hover:text-gray-300 font-medium py-2"
                 >
                   {item.charAt(0).toUpperCase() + item.slice(1)}
                 </button>
               ))}
-              <button className="bg-white text-black px-6 py-2 rounded-full font-semibold w-full">
-                Login
-              </button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                className="bg-white text-black cursor-pointer px-6 py-2 rounded-full font-semibold hover:bg-gray-200 transition-all w-full"
+              >
+                <Link href="/auth/login">Login</Link>
+              </motion.button>
             </motion.div>
           )}
         </nav>
