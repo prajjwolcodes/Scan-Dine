@@ -24,7 +24,6 @@ import {
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
-import toast from "react-hot-toast";
 
 export default function ScanAndDineLanding() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -90,7 +89,7 @@ export default function ScanAndDineLanding() {
         }`}
       >
         <nav className="max-w-7xl mx-auto py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center px-6 sm:px-0 justify-between">
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -129,7 +128,7 @@ export default function ScanAndDineLanding() {
               {isMenuOpen ? (
                 <X className="w-6 h-6" />
               ) : (
-                <Menu className="w-6 h-6" />
+                <Menu className="w-6 h-6 mr-6" />
               )}
             </button>
           </div>
@@ -214,7 +213,7 @@ export default function ScanAndDineLanding() {
           <motion.div variants={fadeInUp} className="space-y-6">
             <motion.h1
               variants={fadeInUp}
-              className="text-5xl md:text-6xl font-bold leading-tight text-white"
+              className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight text-white"
             >
               Dining Reimagined for the{" "}
               <span className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
@@ -223,20 +222,20 @@ export default function ScanAndDineLanding() {
             </motion.h1>
             <motion.p
               variants={fadeInUp}
-              className="text-xl text-gray-300 leading-relaxed"
+              className="text-lg md:text-xl text-gray-300 leading-relaxed"
             >
               Transform your restaurant experience with QR-powered digital
               menus. Faster service, happier customers, seamless operations.
             </motion.p>
             <motion.div
               variants={fadeInUp}
-              className="flex flex-wrap gap-4 pt-4"
+              className="flex flex-col sm:flex-row sm:flex-wrap gap-4 pt-4"
             >
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 className="bg-white text-black px-8 py-4 rounded-full font-semibold hover:bg-gray-100 shadow-lg"
               >
-                Get Started
+                <Link href="/auth/login">Get Started</Link>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -254,7 +253,7 @@ export default function ScanAndDineLanding() {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="relative h-[500px]"
+            className="relative h-[420px] md:h-[500px]"
           >
             {/* Floating Cards Design */}
             <div className="relative w-full h-full flex items-center justify-center">
@@ -264,13 +263,13 @@ export default function ScanAndDineLanding() {
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
                 transition={{ duration: 0.8, delay: 0.6 }}
                 whileHover={{ scale: 1.05, rotate: 5 }}
-                className="relative z-30 bg-white rounded-3xl shadow-2xl p-8 w-72 cursor-pointer"
+                className="relative z-30 bg-white rounded-3xl shadow-2xl p-8 w-64 md:w-72 cursor-pointer mx-auto"
               >
                 <div className="text-center space-y-4">
                   <div className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
                     Scan to Order
                   </div>
-                  <div className="w-48 h-48 mx-auto bg-gradient-to-br from-black via-gray-800 to-black rounded-2xl p-2">
+                  <div className="w-40 h-40 md:w-48 md:h-48 mx-auto bg-gradient-to-br from-black via-gray-800 to-black rounded-2xl p-2">
                     <div className="w-full h-full bg-white rounded-xl flex items-center justify-center p-4">
                       <QRCodeSVG value="https://www.instagram.com/prajzwolslimsulek/" />
                     </div>
@@ -285,7 +284,7 @@ export default function ScanAndDineLanding() {
                 animate={{ opacity: 1, x: 0, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.8 }}
                 whileHover={{ scale: 1.05, rotate: -3 }}
-                className="absolute top-0 left-0 z-20 border border-gray-700 rounded-2xl shadow-xl p-6 w-56 cursor-pointer"
+                className="hidden md:block absolute top-0 left-0 z-20 border border-gray-700 rounded-2xl shadow-xl p-6 w-56 cursor-pointer"
               >
                 <div className="text-white space-y-3">
                   <div className="text-3xl">🍔</div>
@@ -308,7 +307,7 @@ export default function ScanAndDineLanding() {
                 animate={{ opacity: 1, x: 0, y: 0 }}
                 transition={{ duration: 0.8, delay: 1 }}
                 whileHover={{ scale: 1.05, rotate: 3 }}
-                className="absolute bottom-0 right-0 z-20 bg-white rounded-2xl shadow-xl p-6 w-56 cursor-pointer border-2 border-black"
+                className="hidden md:block absolute bottom-0 right-0 z-20 bg-white rounded-2xl shadow-xl p-6 w-56 cursor-pointer border-2 border-black"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -354,7 +353,7 @@ export default function ScanAndDineLanding() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 1.2 }}
                 whileHover={{ scale: 1.1 }}
-                className="absolute top-10 right-10 z-10 bg-gradient-to-br from-white to-gray-100 rounded-xl shadow-lg p-4 w-32 cursor-pointer border border-gray-200"
+                className="hidden md:block absolute top-10 right-10 z-10 bg-gradient-to-br from-white to-gray-100 rounded-xl shadow-lg p-4 w-32 cursor-pointer border border-gray-200"
               >
                 <div className="text-center">
                   <div className="text-3xl font-bold text-black">⚡</div>
